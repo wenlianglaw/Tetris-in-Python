@@ -2,6 +2,27 @@
 
 Implemented the Tetirs with Python, and some basic AI agents for personal learning.
 
+## Requirements
+
+- numpy
+- scipy
+- pyopengl
+- pyopengl-accelerate
+
+Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
+
+- https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl
+
+## Run
+```py
+python ./main.py
+```
+
+To play with keyboard.  Set `keyboard=True` in main.py
+
+To play with an idiot AI, set `keyboard = False` and pass the agent with
+the AI you want.
+
 ## Tetris default settings
 
 Map size: 10 * 20
@@ -37,31 +58,8 @@ Frontend: PyOPenGL
 -  DAS: YES
 -  ARR: YES
 
-## Requirements
-
-- numpy
-- scipy
-- pyopengl
-- pyopengl-accelerate
-
-Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
-
-- https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl
-
-## Run
-```py
-python ./main.py
-```
-
-To play with keyboard.  Set `keyboard=True` in main.py
-
-To play with an idiot AI, set `keyboard = False` and pass the agent with
-the AI you want.
-
 
 Reference:
 
   - Spins: https://tetris.fandom.com/wiki/SRS
 
-Wenliang
-2021.06
