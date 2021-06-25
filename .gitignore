@@ -1,5 +1,6 @@
 *.pyc
 *.xml
+*.xml__.*
 *.iml
 .idea.*
 .*___
