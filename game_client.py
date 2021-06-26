@@ -275,7 +275,6 @@ class GameClient(GameState):
     # print(self.test)
     if action.swap:
       self.Swap()
-      return
     self.Rotate(action.rotation)
     self.Move(action)
 

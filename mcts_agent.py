@@ -114,7 +114,7 @@ class MCTSNode(mcts_algorithm.Node):
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
     game.score = 0
-    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 14:
+    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 4:
       all_possible_actions = agent.GetAllPossiblePositions(
         game.current_piece, game.GetState())
       acts = random.choice(all_possible_actions)[1]

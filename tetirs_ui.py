@@ -199,8 +199,8 @@ class TetrisUI:
     self._SetLevel()
     self._ProcessKeys()
     self._DrawMap()
-#    self._DrawPiece(self._GetShadowPiece(),
-#                    GetColorFromPiece(self.game.current_piece) + 0.3)
+    self._DrawPiece(self._GetShadowPiece(),
+                    GetColorFromPiece(self.game.current_piece) + 0.3)
     self._DrawPiece(self.game.current_piece,
                     GetColorFromPiece(self.game.current_piece))
 
