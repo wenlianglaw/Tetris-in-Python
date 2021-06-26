@@ -48,7 +48,9 @@ import mcts_agent
 import game_client
 import tetirs_ui
 
-keyboard = True
+import numpy as np
+
+keyboard = False
 
 # Backend game
 game = game_client.GameClient()
@@ -75,6 +77,7 @@ mcts_agent = mcts_agent.MCTSAgent(env)
 # Agent being used
 agent = mcts_agent
 agent_th = threading.Thread(group=None, target=mcts_agent.RunUntilGameEnd, daemon=True)
+
 if not keyboard:
   agent_th.start()
 

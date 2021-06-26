@@ -68,9 +68,12 @@ class MCTSNode(mcts_algorithm.Node):
     ret = MCTSNode(game, self.init_line_dropped)
     return ret
 
-  def _CountHoles(self, map: np.array) -> int:
+  def _Connected0Area(self, map: np.array) -> int:
     _, n = scipy.ndimage.measurements.label(map == 0)
-    return n - 1
+    return n
+
+  def _CountHoles(self, map: np.array) -> int:
+    return self._Connected0Area(map) - 1
 
   def _CountSubHoles(self, map: np.array) -> int:
     sum = 0
@@ -78,14 +81,31 @@ class MCTSNode(mcts_algorithm.Node):
       sum += self._CountHoles(map[i:i+1, :])
     return sum
 
+  def _Compactness(self, map: np.array) -> int:
+    """Height compactness + col compactness.  The lower the better."""
+    ret = 0
+    rows = np.sum(map!=0, axis=0)
+    for i in range(len(rows)-1):
+      if rows[i] != 0 and rows[i+1] != 0:
+        ret += np.abs(rows[i] - rows[i+1])
+
+
+    cols = np.sum(map!=0, axis=1)
+    for i in range(len(cols)-1):
+      if cols[i] != 0 and cols[i+1] != 0:
+        ret += np.abs(cols[i] - cols[i+1])
+    return ret
+
+
   def Reward(self, game: game_client.GameClient)->float:
     holes = self._CountHoles(game.map)
     sub_holes = self._CountSubHoles(game.map)
+    compactness = self._Compactness(game.map)
 
     if game.is_gameover:
       return -10000
-    return (game.score * 10.0 + game.line_dropped -20*(holes-1)
-            -5*sub_holes)
+    return (game.score * 10 + game.line_dropped -4*(holes-1)
+            -2*sub_holes - 1 * compactness)
 
 
 
@@ -95,7 +115,8 @@ class MCTSNode(mcts_algorithm.Node):
 
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
-    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 4:
+    game.score = 0
+    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 7:
       all_possible_actions = agent.GetAllPossiblePositions(
         game.current_piece, game.GetState())
       acts = random.choice(all_possible_actions)[1]
@@ -137,13 +158,14 @@ class MCTSAgent(agent.Agent):
     game.TextDraw()
 
     def SingleThreadRollout():
-      for _ in range(9):
+      for _ in range(30):
         start_time = time.time()
         mcts.Rollout(tree)
         print(f"iteration: {_}, {(time.time() - start_time) * 1000}ms")
 
     threads = []
-    for i in range(2):
+    thread_num = 2
+    for i in range(thread_num):
       threads.append(threading.Thread(target=SingleThreadRollout))
       threads[-1].start()
 
