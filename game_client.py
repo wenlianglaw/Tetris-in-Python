@@ -165,7 +165,7 @@ class GameClient(GameState):
 
     self._RefillPieces()
     self._TakePieceFromList()
-    self.accumulate_line_eliminated = 0
+    self.accumulated_line_eliminated = 0
 
     # When soft-dropping, temporarily disable auto-drop
     self.soft_drop = False
@@ -190,7 +190,7 @@ class GameClient(GameState):
     self.can_swap = True
     self.score = 0
     self.accumulate_lock_time = 0
-    self.accumulate_line_eliminated = 0
+    self.accumulated_line_eliminated = 0
     self.soft_drop = False
     self.line_dropped = 0
 
@@ -206,7 +206,8 @@ class GameClient(GameState):
       auto_drop_th.start()
     process_input_th.start()
 
-    auto_drop_th.join()
+    if not self.disable_autodrop:
+      auto_drop_th.join()
     process_input_th.join()
     print("game ends")
 
@@ -272,10 +273,11 @@ class GameClient(GameState):
     # print(f"Processed action: {action.direction}, {action.rotation}, {action.swap}")
     # self.test += 1
     # print(self.test)
-    self.Rotate(action.rotation)
-    self.Move(action)
     if action.swap:
       self.Swap()
+      return
+    self.Rotate(action.rotation)
+    self.Move(action)
 
   def _ProcessActionsThread(self):
     while True:
@@ -434,15 +436,17 @@ class GameClient(GameState):
     elimated_lines = []
     elimated_cnt = 0
     for row in range(len(self.last_put_piece.shape)):
-      if not (self.last_put_piece.x + row >= 0 and self.last_put_piece.x + row < self.length):
+      if not (self.last_put_piece.x + row >= 0 and
+              self.last_put_piece.x + row < self.length):
         continue
       if np.all(self.map[self.last_put_piece.x + row, :] != 0):
         elimated_lines.append(row + self.last_put_piece.x)
         elimated_cnt += 1
 
     self.map = np.delete(self.map, elimated_lines, axis=0)
-    self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width), dtype=np.int), axis=0)
-    self.accumulate_line_eliminated += elimated_cnt
+    self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width),
+                                               dtype=np.int), axis=0)
+    self.accumulated_line_eliminated += elimated_cnt
 
     self.score += self._CalEliminateScore(n_eliminate=elimated_cnt)
 
@@ -628,13 +632,12 @@ class GameClient(GameState):
     piece_to_check.x += offset[0]
     piece_to_check.y += offset[1]
 
-    for i in range(len(piece_to_check.shape)):
+    for i in range(len(piece_to_check.shape)-1, -1, -1):
       for j in range(len(piece_to_check.shape[0])):
         if piece_to_check.shape[i][j] != 0:
           if (i + piece_to_check.x < 0 or i + piece_to_check.x >= self.length or
-              j + piece_to_check.y < 0 or j + piece_to_check.y >= self.width):
-            return False
-          if self.map[i + piece_to_check.x][j + piece_to_check.y] != 0:
+              j + piece_to_check.y < 0 or j + piece_to_check.y >= self.width or
+              self.map[i + piece_to_check.x][j + piece_to_check.y] != 0):
             return False
 
     return True
@@ -671,6 +674,6 @@ def CreateGameFromState(state: GameState) -> GameClient:
   game.piece_list = state.piece_list.copy()
   game.can_swap = state.can_swap
   game.is_gameover = state.is_gameover
-  game.accumulate_line_eliminated = state.accumulated_eliminated
+  game.accumulated_line_eliminated = state.accumulated_eliminated
   game.line_dropped = state.line_dropped
   return game

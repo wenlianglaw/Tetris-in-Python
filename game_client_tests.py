@@ -387,7 +387,6 @@ class TestGameClient(unittest.TestCase):
     self.assertTrue(np.all(self.game.map==0))
     self.assertEqual(self.game.map.shape, (self.game.length, self.game.width))
 
-
   def test_GameCopy(self):
     game = self.game.copy()
 

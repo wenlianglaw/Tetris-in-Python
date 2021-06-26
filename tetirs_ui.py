@@ -179,7 +179,7 @@ class TetrisUI:
       self.game.SetLevel(int(self.game.line_dropped / 14))
 
   def _Sprint40Record(self):
-    if self.game.accumulate_line_eliminated >= 40:
+    if self.game.accumulated_line_eliminated >= 40:
       if not self.sprint40_target_completed:
         print("40 lines:", time.time() - self.start_time)
         self.sprint40_target_completed = True
@@ -199,8 +199,8 @@ class TetrisUI:
     self._SetLevel()
     self._ProcessKeys()
     self._DrawMap()
-    self._DrawPiece(self._GetShadowPiece(),
-                    GetColorFromPiece(self.game.current_piece) + 0.3)
+#    self._DrawPiece(self._GetShadowPiece(),
+#                    GetColorFromPiece(self.game.current_piece) + 0.3)
     self._DrawPiece(self.game.current_piece,
                     GetColorFromPiece(self.game.current_piece))
 
@@ -252,13 +252,13 @@ class TetrisUI:
       self.already_instant_soft_dropped = False
 
   def _SpecialInput(self, key, x, y):
-    if key == GLUT_KEY_UP:
+    if key == SWAP:
       self.key_pressed["SWAP"] = True
-    if key == GLUT_KEY_DOWN:
+    if key == DOWN:
       self.key_pressed["DOWN"] = True
-    if key == GLUT_KEY_LEFT:
+    if key == LEFT:
       self.key_pressed["LEFT"] = True
-    if key == GLUT_KEY_RIGHT:
+    if key == RIGHT:
       self.key_pressed["RIGHT"] = True
 
   def _SpecialUpInput(self, key, x, y):
@@ -300,9 +300,9 @@ class TetrisUI:
       self._RestartGame()
 
   def _KeyboardUpFunc(self, key, x, y):
-    if key in (b'r', b'e', b'w'):
+    if key in (ROTATE90, ROTATE180, ROTATE270):
       self._rotation_active = True
-    if key == b' ':
+    if key == HARD_DROP:
       self._hard_drop_active = True
 
     self.first_input = True

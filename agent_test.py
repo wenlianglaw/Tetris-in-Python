@@ -90,7 +90,7 @@ class AgentTest(unittest.TestCase):
     self.game.piece_list = [shape.T()] + self.game.piece_list
 
     self.game.map = np.array(
-      [
+      [# 0  1  2  3  4  5  6  7  8  9
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 0
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 1
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 2

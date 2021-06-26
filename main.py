@@ -48,9 +48,7 @@ import mcts_agent
 import game_client
 import tetirs_ui
 
-import numpy as np
-
-keyboard = False
+keyboard = True
 
 # Backend game
 game = game_client.GameClient()
@@ -59,7 +57,6 @@ game = game_client.GameClient()
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
 th = threading.Thread(group=None, target=ui.Run, daemon=True)
 th.start()
-
 
 # Initializes the AI environment
 # get_state:  Callable[[], game_client.GameState]

@@ -29,16 +29,16 @@ class Env:
 def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
   return not game.CheckValidity(piece, offset=(1, 0))
 
-def _InRange(x:int, y:int, len: int, wid:int):
+def _InRange(x: int, y: int, len: int, wid: int):
   return (x >= 0 and y >= 0 and x < len and y < wid)
 
-def _PossibleContact(piece:shape.Shape, map:np.array):
+def _PossibleContact(piece: shape.Shape, map: np.array):
   (l, w) = piece.shape.shape
   (x, y) = (piece.x, piece.y)
   for i in range(l):
     for j in range(w):
-      if (not _InRange(x + i, y+j, map.shape[0], map.shape[1])
-          or map[i+x][y+j] != 0):
+      if (not _InRange(x + i, y + j, map.shape[0], map.shape[1])
+          or map[i + x][y + j] != 0):
         return True
   return False
 
@@ -96,13 +96,14 @@ def GetAllPossiblePositions(piece:shape.Shape,
                        piece_to_expand.state]:
             q.put((piece_to_expand, path+[action]))
 
-    if _PossibleContact(cur, game.map):
-      for rotate in [1,2,3]:
-        game.SpawnPiece(cur.copy())
-        if game.Rotate(rotate):
-          if not visit[game.current_piece.x, game.current_piece.y,
-                       game.current_piece.state]:
-            q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
+      if _PossibleContact(cur, game.map):
+        for rotate in [1, 2, 3]:
+          game.SpawnPiece(cur.copy())
+          if game.Rotate(rotate):
+            if not visit[game.current_piece.x, game.current_piece.y,
+                         game.current_piece.state]:
+              q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
+
 
   return ret
 

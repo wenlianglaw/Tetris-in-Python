@@ -107,8 +107,6 @@ class MCTSNode(mcts_algorithm.Node):
     return (game.score * 10 + game.line_dropped -4*(holes-1)
             -2*sub_holes - 1 * compactness)
 
-
-
   def IsTerminal(self):
     "Returns True if the node has no children"
     return self.game.CheckGameOver()
@@ -116,7 +114,7 @@ class MCTSNode(mcts_algorithm.Node):
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
     game.score = 0
-    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 7:
+    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 14:
       all_possible_actions = agent.GetAllPossiblePositions(
         game.current_piece, game.GetState())
       acts = random.choice(all_possible_actions)[1]
@@ -158,7 +156,7 @@ class MCTSAgent(agent.Agent):
     game.TextDraw()
 
     def SingleThreadRollout():
-      for _ in range(30):
+      for _ in range(100):
         start_time = time.time()
         mcts.Rollout(tree)
         print(f"iteration: {_}, {(time.time() - start_time) * 1000}ms")
