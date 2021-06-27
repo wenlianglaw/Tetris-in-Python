@@ -119,7 +119,7 @@ class AgentTest(unittest.TestCase):
 
     rst = self.agent.GetAllPossiblePositions(t, self.game.GetState())
     rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])
-    self.assertTrue((19, 1, 3) in rst_set)
+    self.assertTrue((19, 1, 2) in rst_set)
 
 if __name__ == '__main__':
   unittest.main()

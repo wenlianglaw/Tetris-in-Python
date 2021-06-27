@@ -43,7 +43,7 @@ def _PossibleContact(piece: shape.Shape, map: np.array):
   return False
 
 def GetAllPossiblePositions(piece:shape.Shape,
-                            state:game_client.GameState) -> (
+                            game_:game_client.GameClient) -> (
     List[Tuple[shape.Shape, List[actions.Action]]]):
   """Gets all possible positions of a piece in the game
   :return: [(final piece status, [List of actions to reach the final status])]
@@ -51,14 +51,12 @@ def GetAllPossiblePositions(piece:shape.Shape,
 
   ret = []
 
-  game = game_client.CreateGameFromState(state)
+  game = game_.copy()
   game.SpawnPiece(piece)
 
   if game.can_swap:
-    game.Swap()
     action = actions.Action(swap=True)
-    ret.append((game.current_piece, [action]))
-    game.Swap()
+    ret.append((game.piece_list[0], [action]))
 
   visit = np.zeros((game.length, game.width, 4), dtype=bool)
 
@@ -104,8 +102,33 @@ def GetAllPossiblePositions(piece:shape.Shape,
                          game.current_piece.state]:
               q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
 
+  return ret
+
+def SimulateGetPossiblePositions(piece: shape.Shape, game: game_client.GameClient) -> (
+  List[Tuple[shape.Shape, List[actions.Action]]]):
+  """ Gets some possible positions.  This is a quicker and simpler version of GetALlPossiblePositions.
+
+  This is intended to run fast so we can run more layers in the simulate funtion.
+  """
+  ret = []
+
+  def SearchForCurrentState(piece, game):
+    ret.append((piece.copy(), [actions.Action(dir=actions.HARD_DROP)]))
+
+    for y in [-1, 1]:
+      path = []
+      moved_piece = piece.copy()
+      while game.CheckValidity(moved_piece, (0, y)):
+        moved_piece.y += y
+        path.append(actions.Action(dir=actions.LEFT))
+        ret.append((moved_piece, path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
+
+  for rotate in range(4):
+    rotated_piece = piece.copy()
+    SearchForCurrentState(rotated_piece.copy(), game)
 
   return ret
+
 
 class Agent:
   def __init__(self, env: Env):
@@ -122,7 +145,9 @@ class Agent:
   def GetAllPossiblePositions(self, piece:shape.Shape,
                               state:game_client.GameState) -> (
       List[Tuple[shape.Shape, List[actions.Action]]]):
-    return GetAllPossiblePositions(piece, state)
+
+    game = game_client.CreateGameFromState(state)
+    return GetAllPossiblePositions(piece, game)
 
   def RunUntilGameEnd(self):
     state = self.env.get_state()

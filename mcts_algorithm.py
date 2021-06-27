@@ -71,13 +71,18 @@ class MCTS():
       print(f"{self.q[n]} / {self.n[n]} {score(n)}")
     return max(self.children[node], key=score)
 
+
   def Rollout(self, node):
-    import actions
+    import time
     "Make the tree one layer better. (Train for one iteration.)"
     path = self._Select(node)
     leaf = path[-1]
+    start_time = time.time()
     self._Expand(leaf)
+    print("Expand: ", (time.time() - start_time) * 1000)
+    start_time = time.time()
     reward = self._Simulate(leaf)
+    print("Simulate: ", (time.time() - start_time) * 1000)
     self._Backpropagate(path, reward)
 
   def _Select(self, node):

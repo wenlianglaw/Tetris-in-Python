@@ -16,21 +16,26 @@ import random
 import scipy.ndimage
 
 
-
-
 from typing import List, Set, Dict, Tuple
 
 class MCTSNode(mcts_algorithm.Node):
   def __init__(self, game:game_client.GameClient=None,
                init_line_dropped:int=0,
                saved_solutions:
-               Dict[mcts_algorithm.Node, Tuple[shape.Shape, List[actions.Action]]] = dict()):
+               Dict[mcts_algorithm.Node,
+                    Tuple[shape.Shape, List[actions.Action]]] = None,
+               root_score : float = 0.0):
     super().__init__()
+
+    self.saved_solutions = saved_solutions
+    if self.saved_solutions is None:
+      self.saved_solutions = dict()
+
     self.action_list = []
     self.game = game
     # game used for simulation
     self.init_line_dropped = init_line_dropped
-    self.saved_solutions = saved_solutions
+    self.root_score = root_score
 
   def FindChildren(self)->Set[mcts_algorithm.Node]:
     if self.game is None:
@@ -42,7 +47,7 @@ class MCTSNode(mcts_algorithm.Node):
 
     else:
       all_possible_solutions = agent.GetAllPossiblePositions(
-        self.game.current_piece, self.game.GetState())
+        self.game.current_piece, self.game)
       self.saved_solutions[self] = all_possible_solutions
 
     ret = set()
@@ -50,7 +55,7 @@ class MCTSNode(mcts_algorithm.Node):
     for solution in all_possible_solutions:
       game = self.game.copy()
       game.ProcessActions(solution[1])
-      node = MCTSNode(game, self.init_line_dropped)
+      node = MCTSNode(game, self.init_line_dropped, root_score=self.root_score)
       node.action_list = solution[1]
       ret.add(node)
 
@@ -60,8 +65,10 @@ class MCTSNode(mcts_algorithm.Node):
     "Random successor of this board state (for more efficient simulation)"
 
     game = self.game.copy()
-    all_possible_actions = agent.GetAllPossiblePositions(
-      game.current_piece, game.GetState())
+#    all_possible_actions = agent.GetAllPossiblePositions(
+#      game.current_piece, game)
+    all_possible_actions = agent.SimulateGetPossiblePositions(
+      game.current_piece, game)
     acts = random.choice(all_possible_actions)[1]
     game.ProcessActions(acts)
 
@@ -113,8 +120,7 @@ class MCTSNode(mcts_algorithm.Node):
 
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
-    game.score = 0
-    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 4:
+    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 2:
       all_possible_actions = agent.GetAllPossiblePositions(
         game.current_piece, game.GetState())
       acts = random.choice(all_possible_actions)[1]
@@ -140,7 +146,6 @@ class MCTSNode(mcts_algorithm.Node):
             node1.game.held_piece == node2.game.held_piece)
 
 
-
 class MCTSAgent(agent.Agent):
   def __init__(self, env: agent.Env):
     super().__init__(env)
@@ -148,7 +153,7 @@ class MCTSAgent(agent.Agent):
   def MakeDecision(self) -> List[actions.Action]:
     state = self.env.get_state()
     game = game_client.CreateGameFromState(state)
-    tree = MCTSNode(game, game.line_dropped)
+    tree = MCTSNode(game, game.line_dropped, root_score=game.score)
     mcts = mcts_algorithm.MCTS()
 
     print(game.line_dropped)
@@ -162,7 +167,7 @@ class MCTSAgent(agent.Agent):
         print(f"iteration: {_}, {(time.time() - start_time) * 1000}ms")
 
     threads = []
-    thread_num = 2
+    thread_num = 1
     for i in range(thread_num):
       threads.append(threading.Thread(target=SingleThreadRollout))
       threads[-1].start()

@@ -394,9 +394,9 @@ class GameClient(GameState):
 
   def _CalEliminateScore(self, n_eliminate: int) -> int:
     ret = 0
+    is_last_put_t = isinstance(self.last_put_piece, shape.T)
     if n_eliminate == 1:
-      if (isinstance(self.last_put_piece, shape.T) and
-          self.last_action and self.last_action.rotation != 0):
+      if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TSS")
         ret += TSS
       else:
@@ -404,8 +404,7 @@ class GameClient(GameState):
 
     if n_eliminate == 2:
       # TSD
-      if (isinstance(self.last_put_piece, shape.T) and
-          self.last_action and self.last_action.rotation != 0):
+      if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TSD")
         ret += TSD
       # Normal Double
@@ -414,8 +413,7 @@ class GameClient(GameState):
 
     if n_eliminate == 3:
       # TST
-      if (isinstance(self.last_put_piece, shape.T) and
-          self.last_action and self.last_action.rotation != 0):
+      if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TST")
         ret += TST
       else:
@@ -487,7 +485,6 @@ class GameClient(GameState):
           if piece.shape[i][j] != 0:
             map[piece.x + i, piece.y + j] = piece.shape[i, j] * piece.id
 
-      self.last_put_piece = self.current_piece
       return True
     finally:
       if self.mutex_current_piece.locked():
@@ -495,6 +492,7 @@ class GameClient(GameState):
       self.mutex.release()
 
   def _PostPutPiece(self):
+    self.last_put_piece = self.current_piece
     self._LineClear()
     self._TakePieceFromList()
     self.CheckGameOver()
