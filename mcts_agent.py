@@ -153,7 +153,7 @@ class MCTSAgent(agent.Agent):
   def MakeDecision(self) -> List[actions.Action]:
     state = self.env.get_state()
     game = game_client.CreateGameFromState(state)
-    tree = MCTSNode(game, game.line_dropped, root_score=game.score)
+    tree = MCTSNode(game, game.line_dropped)
     mcts = mcts_algorithm.MCTS()
 
     print(game.line_dropped)
@@ -163,6 +163,7 @@ class MCTSAgent(agent.Agent):
     def SingleThreadRollout():
       for _ in range(100):
         start_time = time.time()
+        tree.root_score = game.score
         mcts.Rollout(tree)
         print(f"iteration: {_}, {(time.time() - start_time) * 1000}ms")
 
