@@ -1,4 +1,15 @@
 # MCTS to search for a best move.
+# Some notes to the MCTS agent.
+# Performance seems to be major issue:
+# - There are about 30 possible moves per layer.  So 3 layer-depth search
+#   would generate about 27000 different states.
+# - Finding all possible valid moves for a state takes about 100 ~ 200 ms.
+#
+# Given this searching 100 nodes in the tree takes about 20 seconds, and it will
+# only cover <<2 layers possible states.
+#
+# To have a good coverage of a 3 depth search, we need to search maybe at least 5000
+# times, this would take 10 mins to generate a move.
 
 import time
 
@@ -146,9 +157,12 @@ class MCTSNode(mcts_algorithm.Node):
             node1.game.held_piece == node2.game.held_piece)
 
 
-class MCTSAgent(agent.Agent):
-  def __init__(self, env: agent.Env):
+class MCTSAgent(agent.Agent, ):
+  def __init__(self, env: agent.Env,
+               thread_num:int=1, iterations_per_move:int=100):
     super().__init__(env)
+    self.thread_num = thread_num
+    self.iterations = iterations_per_move
 
   def MakeDecision(self) -> List[actions.Action]:
     state = self.env.get_state()
@@ -161,15 +175,14 @@ class MCTSAgent(agent.Agent):
     game.TextDraw()
 
     def SingleThreadRollout():
-      for _ in range(100):
+      for _ in range(self.iterations):
         start_time = time.time()
         tree.root_score = game.score
         mcts.Rollout(tree)
         print(f"iteration: {_}, {(time.time() - start_time) * 1000}ms")
 
     threads = []
-    thread_num = 1
-    for i in range(thread_num):
+    for i in range(self.thread_num):
       threads.append(threading.Thread(target=SingleThreadRollout))
       threads[-1].start()
 
