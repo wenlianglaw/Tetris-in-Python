@@ -116,14 +116,16 @@ class MCTSNode(mcts_algorithm.Node):
 
 
   def Reward(self, game: game_client.GameClient)->float:
-    holes = self._CountHoles(game.map)
+#    holes = self._CountHoles(game.map)
     sub_holes = self._CountSubHoles(game.map)
-    compactness = self._Compactness(game.map)
-
+#    compactness = self._Compactness(game.map)
     if game.is_gameover:
       return -10000
-    return (game.score * 10 + game.line_dropped -4*(holes-1)
-            -2*sub_holes - 1 * compactness)
+
+    return (game.score * 10 + game.line_dropped - 4*sub_holes)
+
+#    return (game.score * 10 + game.line_dropped -4*(holes-1)
+#            -2*sub_holes - 1 * compactness)
 
   def IsTerminal(self):
     "Returns True if the node has no children"
