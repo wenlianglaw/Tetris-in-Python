@@ -48,7 +48,7 @@ import mcts_agent
 import game_client
 import tetirs_ui
 
-keyboard = True
+keyboard = False
 
 # Backend game
 game = game_client.GameClient()
@@ -70,7 +70,8 @@ env = agent.Env(get_state=game.GetState,
                 restart=game.Restart)
 
 random_agent = agent.Agent(env)
-mcts_agent = mcts_agent.MCTSAgent(env)
+
+mcts_agent = mcts_agent.MCTSAgent(env, thread_num=2, iterations_per_move=300)
 # Agent being used
 agent = mcts_agent
 agent_th = threading.Thread(group=None, target=mcts_agent.RunUntilGameEnd, daemon=True)
