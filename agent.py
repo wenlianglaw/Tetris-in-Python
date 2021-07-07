@@ -63,21 +63,6 @@ class Agent:
 def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
   return not game.CheckValidity(piece, offset=(1, 0))
 
-def _PossibleContact(piece: shape.Shape, map: np.array):
-  (x, y) = (piece.x, piece.y)
-
-
-  # For a full coverage we should do range(4) for shape I,
-  # however in the practical game I-Spin is not ofen used,
-  # so here we only use 3 to save some time.
-  if x < 0 or y < 0 or x + 3 >= map.shape[0] or  y + 3 >= map.shape[1]:
-    return True
-  for i in range(3):
-      if map[i + x][y] != 0:
-        return True
-
-  return False
-
 def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (
     List[Tuple[shape.Shape, List[actions.Action]]]):
   """ Gets some possible positions.  This is a quicker and simpler version of GetALlPossiblePositions.
@@ -158,7 +143,7 @@ def GetAllPossiblePositions(piece:shape.Shape,
                        piece_to_expand.state]:
             q.put((piece_to_expand, path+[action]))
 
-      if _AtBottom(cur, game) and _PossibleContact(cur, game.map):
+      if _AtBottom(cur, game):
         for rotate in [1, 2, 3]:
           game.SpawnPiece(cur.copy())
           if game.Rotate(rotate):
