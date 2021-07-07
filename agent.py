@@ -66,13 +66,16 @@ def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
 def _PossibleContact(piece: shape.Shape, map: np.array):
   (x, y) = (piece.x, piece.y)
 
-  if x + 4 > map.shape[0] or  y + 4 > map.shape[1]:
-    return True
 
-  for i in range(4):
-    for j in range(4):
-      if map[i + x][y + j] != 0:
+  # For a full coverage we should do range(4) for shape I,
+  # however in the practical game I-Spin is not ofen used,
+  # so here we only use 3 to save some time.
+  if x < 0 or y < 0 or x + 3 >= map.shape[0] or  y + 3 >= map.shape[1]:
+    return True
+  for i in range(3):
+      if map[i + x][y] != 0:
         return True
+
   return False
 
 def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (
@@ -104,6 +107,9 @@ def GetAllPossiblePositions(piece:shape.Shape,
                             game_:game_client.GameClient) -> (
     List[Tuple[shape.Shape, List[actions.Action]]]):
   """Gets all possible positions of a piece in the game
+  Note still some positions which requires soft-drop to mid screen and then rotate are
+  ignored since this will save ~60% time.
+
   :return: [(final piece status, [List of actions to reach the final status])]
   """
 
@@ -152,7 +158,7 @@ def GetAllPossiblePositions(piece:shape.Shape,
                        piece_to_expand.state]:
             q.put((piece_to_expand, path+[action]))
 
-      if _PossibleContact(cur, game.map):
+      if _AtBottom(cur, game) and _PossibleContact(cur, game.map):
         for rotate in [1, 2, 3]:
           game.SpawnPiece(cur.copy())
           if game.Rotate(rotate):
