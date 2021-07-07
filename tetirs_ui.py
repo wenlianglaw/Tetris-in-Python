@@ -25,13 +25,13 @@ import actions
 
 import numpy as np
 
-COLOR_BKGD = np.array((100, 100, 100)) / 255
+COLOR_BKGD = np.array((30, 30, 30)) / 255
 COLOR_I = np.array((143, 209, 172)) / 255
-COLOR_J = np.array((85, 75, 159)) / 255
+COLOR_J = np.array((81, 75, 169)) / 255
 COLOR_L = np.array((204, 133, 80)) / 255
-COLOR_T = np.array((235, 119, 245)) / 255
-COLOR_O = np.array((208, 182, 80)) / 255
-COLOR_S = np.array((171, 203, 83)) / 255
+COLOR_T = np.array((158, 80, 200)) / 255
+COLOR_O = np.array((208, 162, 70)) / 255
+COLOR_S = np.array((207, 218, 49)) / 255
 COLOR_Z = np.array((191, 80, 75)) / 255
 
 BLOCK_SIZE = 15
@@ -200,7 +200,7 @@ class TetrisUI:
     self._ProcessKeys()
     self._DrawMap()
     self._DrawPiece(self._GetShadowPiece(),
-                    GetColorFromPiece(self.game.current_piece) + 0.3)
+                   0.08 * GetColorFromPiece(self.game.current_piece) + 0.3)
     self._DrawPiece(self.game.current_piece,
                     GetColorFromPiece(self.game.current_piece))
 

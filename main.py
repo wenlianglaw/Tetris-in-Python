@@ -48,15 +48,18 @@ import mcts_agent
 import game_client
 import tetirs_ui
 
-keyboard = False
+
+# Other I/O settings can be configured in the tetris_ui.py file
+keyboard = True
 
 # Backend game
-game = game_client.GameClient()
+game = game_client.GameClient(width=10, length=20)
+print(game.length, game.width)
 
 # Initializes the front end UI with backend game.
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
-th = threading.Thread(group=None, target=ui.Run, daemon=True)
-th.start()
+ui_th = threading.Thread(group=None, target=ui.Run, daemon=True)
+ui_th.start()
 
 # Initializes the AI environment
 # get_state:  Callable[[], game_client.GameState]
@@ -71,7 +74,7 @@ env = agent.Env(get_state=game.GetState,
 
 random_agent = agent.Agent(env)
 
-mcts_agent = mcts_agent.MCTSAgent(env, thread_num=2, iterations_per_move=300)
+mcts_agent = mcts_agent.MCTSAgent(env, thread_num=2, iterations_per_move=200)
 # Agent being used
 agent = mcts_agent
 agent_th = threading.Thread(group=None, target=mcts_agent.RunUntilGameEnd, daemon=True)
@@ -86,4 +89,4 @@ if keyboard:
 
 # Exiting...
 agent_th.join()
-th.join()
+ui_th.join()

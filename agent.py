@@ -7,6 +7,7 @@
 
 import time
 import queue
+import abc
 
 import numpy as np
 
@@ -26,6 +27,39 @@ class Env:
     self.take_actions = take_actions
     self.restart = restart
 
+
+class Agent:
+  def __init__(self, env: Env):
+    self.env = env
+    # Time interval between making two decisions
+    self.decision_interval = 100 / 1000
+
+  @abc.abstractmethod
+  def MakeDecision(self) -> List[actions.Action]:
+    """Returns a list of actions based on the current game state."""
+    state = self.env.get_state()
+    possible_actions = self.GetAllPossiblePositions(state.current_piece, state)
+    return random.choice(possible_actions)[1]
+
+
+  def GetAllPossiblePositions(self, piece:shape.Shape,
+                              state:game_client.GameState) -> (
+      List[Tuple[shape.Shape, List[actions.Action]]]):
+
+    game = game_client.CreateGameFromState(state)
+    return GetAllPossiblePositions(piece, game)
+
+  def RunUntilGameEnd(self):
+    state = self.env.get_state()
+    while not state.is_gameover:
+      start = time.time()
+      action = self.MakeDecision()
+      self.env.take_actions(action)
+      print(f"{(time.time() - start) * 1000} ms")
+      time.sleep(self.decision_interval)
+    print("Game Over")
+
+
 def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
   return not game.CheckValidity(piece, offset=(1, 0))
 
@@ -41,6 +75,31 @@ def _PossibleContact(piece: shape.Shape, map: np.array):
           or map[i + x][y + j] != 0):
         return True
   return False
+
+def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (
+    List[Tuple[shape.Shape, List[actions.Action]]]):
+  """ Gets some possible positions.  This is a quicker and simpler version of GetALlPossiblePositions.
+
+  This is intended to run fast.
+  """
+  ret = []
+
+  def SearchForCurrentState(piece, game):
+    ret.append((piece.copy(), [actions.Action(dir=actions.HARD_DROP)]))
+
+    for y in [-1, 1]:
+      path = []
+      moved_piece = piece.copy()
+      while game.CheckValidity(moved_piece, (0, y)):
+        moved_piece.y += y
+        path.append(actions.Action(dir=actions.LEFT))
+        ret.append((moved_piece, path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
+
+  for rotate in range(4):
+    rotated_piece = piece.copy()
+    SearchForCurrentState(rotated_piece.copy(), game)
+
+  return ret
 
 def GetAllPossiblePositions(piece:shape.Shape,
                             game_:game_client.GameClient) -> (
@@ -103,34 +162,4 @@ def GetAllPossiblePositions(piece:shape.Shape,
               q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
 
   return ret
-
-class Agent:
-  def __init__(self, env: Env):
-    self.env = env
-    # Time interval between making two decisions
-    self.decision_interval = 100 / 1000
-
-  def MakeDecision(self) -> List[actions.Action]:
-    state = self.env.get_state()
-    possible_actions = self.GetAllPossiblePositions(state.current_piece, state)
-    return random.choice(possible_actions)[1]
-
-
-  def GetAllPossiblePositions(self, piece:shape.Shape,
-                              state:game_client.GameState) -> (
-      List[Tuple[shape.Shape, List[actions.Action]]]):
-
-    game = game_client.CreateGameFromState(state)
-    return GetAllPossiblePositions(piece, game)
-
-  def RunUntilGameEnd(self):
-    state = self.env.get_state()
-    while not state.is_gameover:
-      start = time.time()
-      action = self.MakeDecision()
-      self.env.take_actions(action)
-      print(f"{(time.time() - start) * 1000} ms")
-      time.sleep(self.decision_interval)
-    print("Game Over")
-
 

@@ -78,7 +78,7 @@ class MCTSNode(mcts_algorithm.Node):
     game = self.game.copy()
 #    all_possible_actions = agent.GetAllPossiblePositions(
 #      game.current_piece, game)
-    all_possible_actions = self._SimulateGetPossiblePositions(
+    all_possible_actions = agent.GetPossiblePositionsQuickVersion(
       game.current_piece, game)
     acts = random.choice(all_possible_actions)[1]
     game.ProcessActions(acts)
@@ -131,30 +131,7 @@ class MCTSNode(mcts_algorithm.Node):
     "Returns True if the node has no children"
     return self.game.CheckGameOver()
 
-  def _SimulateGetPossiblePositions(piece: shape.Shape, game: game_client.GameClient) -> (
-      List[Tuple[shape.Shape, List[actions.Action]]]):
-    """ Gets some possible positions.  This is a quicker and simpler version of GetALlPossiblePositions.
 
-    This is intended to run fast so we can run more layers in the simulate funtion.
-    """
-    ret = []
-
-    def SearchForCurrentState(piece, game):
-      ret.append((piece.copy(), [actions.Action(dir=actions.HARD_DROP)]))
-
-      for y in [-1, 1]:
-        path = []
-        moved_piece = piece.copy()
-        while game.CheckValidity(moved_piece, (0, y)):
-          moved_piece.y += y
-          path.append(actions.Action(dir=actions.LEFT))
-          ret.append((moved_piece, path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
-
-    for rotate in range(4):
-      rotated_piece = piece.copy()
-      SearchForCurrentState(rotated_piece.copy(), game)
-
-    return ret
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
     while not game.is_gameover and game.line_dropped - self.init_line_dropped < 2:
@@ -192,6 +169,9 @@ class MCTSAgent(agent.Agent, ):
 
   def MakeDecision(self) -> List[actions.Action]:
     state = self.env.get_state()
+    if state.is_gameover:
+      return []
+
     game = game_client.CreateGameFromState(state)
     tree = MCTSNode(game, game.line_dropped)
     mcts = mcts_algorithm.MCTS()

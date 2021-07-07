@@ -640,7 +640,16 @@ class GameClient(GameState):
     return True
 
   def _GetNextBag(self):
-    bag = [shape.I(), shape.J(), shape.L(), shape.O(), shape.S(), shape.T(), shape.Z()]
+    start_y = int((self.width - 3) / 2)
+    assert start_y >= 0
+
+    bag = [shape.I(start_y=start_y),
+           shape.J(start_y=start_y),
+           shape.L(start_y=start_y),
+           shape.O(start_y=start_y),
+           shape.S(start_y=start_y),
+           shape.T(start_y=start_y),
+           shape.Z(start_y=start_y)]
     np.random.shuffle(bag)
     return bag
 
