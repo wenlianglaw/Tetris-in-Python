@@ -50,7 +50,7 @@ import tetirs_ui
 
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = True
+keyboard = False
 
 # Backend game
 game = game_client.GameClient(width=10, length=20)

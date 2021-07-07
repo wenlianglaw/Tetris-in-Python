@@ -40,7 +40,7 @@ class AgentTest(unittest.TestCase):
            (5, -1, 1), (5, 0, 1), (5, 1, 1),
            (5, 0, 3), (5, 1, 3), (5, 2, 3),
            # swap
-           (1,3,0)]
+           (1,0,0)]
 
     for (p, action_list) in rst:
       self.assertTrue((p.x, p.y, p.state) in exp)

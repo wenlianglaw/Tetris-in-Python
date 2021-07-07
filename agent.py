@@ -63,15 +63,16 @@ class Agent:
 def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
   return not game.CheckValidity(piece, offset=(1, 0))
 
-def _InRange(x: int, y: int, len: int, wid: int):
-  return (x >= 0 and y >= 0 and x < len and y < wid)
-
 def _PossibleContact(piece: shape.Shape, map: np.array):
   (x, y) = (piece.x, piece.y)
-  for (i,j) in piece.GetShape():
-    if (not _InRange(x + i, y + j, map.shape[0], map.shape[1])
-        or map[i + x][y + j] != 0):
-      return True
+
+  if x + 4 > map.shape[0] or  y + 4 > map.shape[1]:
+    return True
+
+  for i in range(4):
+    for j in range(4):
+      if map[i + x][y + j] != 0:
+        return True
   return False
 
 def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (
