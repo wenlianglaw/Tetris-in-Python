@@ -7,85 +7,95 @@ import game_client
 import shape
 
 class TestShapeRotations(unittest.TestCase):
+  def setUp(self):
+    self.game = game_client.GameClient(width=10, length=5)
+
   def test_I(self):
     i = shape.I()
+    print(i)
+
+    self.game.SpawnPiece(i)
+    self.game.PutPiece(i)
+    self.assertEqual(0, i.state)
     self.assertTrue(
-      np.array_equal(i.shape, [
+      np.array_equal(self.game.map[1:5, 3:7], i.id * np.array([
         [0, 0, 0, 0],
         [1, 1, 1, 1],
         [0, 0, 0, 0],
-        [0, 0, 0, 0]]))
+        [0, 0, 0, 0]])))
 
-    self.assertEqual(0, i.state)
-
+  def test_IRot90(self):
+    i = shape.I()
     i.Rotate90()
+    print(i)
+
+    self.game.SpawnPiece(i)
+    self.game.PutPiece()
     self.assertTrue(
-      np.array_equal(i.shape, [
+      np.array_equal(self.game.map[1:5, 3:7], i.id * np.array([
         [0, 0, 1, 0],
         [0, 0, 1, 0],
         [0, 0, 1, 0],
-        [0, 0, 1, 0]]))
+        [0, 0, 1, 0]])))
     self.assertEqual(1, i.state)
 
-    i.Rotate90()
+  def test_IRot180(self):
+    i = shape.I()
+    i.Rotate180()
+    print(i)
+
+    self.game.SpawnPiece(i)
+    self.game.PutPiece(i)
     self.assertTrue(
-      np.array_equal(i.shape, [
+      np.array_equal(self.game.map[1:5, 3:7], i.id * np.array([
         [0, 0, 0, 0],
         [0, 0, 0, 0],
         [1, 1, 1, 1],
-        [0, 0, 0, 0]]))
+        [0, 0, 0, 0]])))
     self.assertEqual(2, i.state)
 
-    i.Rotate90()
+  def test_IRot270(self):
+    i = shape.I()
+    i.Rotate270()
+    print(i)
+
+    self.game.SpawnPiece(i)
+    self.game.PutPiece(i)
     self.assertTrue(
-      np.array_equal(i.shape, [
+      np.array_equal(self.game.map[1:5, 3:7], i.id * np.array([
         [0, 1, 0, 0],
         [0, 1, 0, 0],
         [0, 1, 0, 0],
-        [0, 1, 0, 0]]))
+        [0, 1, 0, 0]])))
     self.assertEqual(3, i.state)
 
   def test_J(self):
     j = shape.J()
+
+    self.game.SpawnPiece(j)
+    self.game.PutPiece()
+
     self.assertTrue(
-      np.array_equal(j.shape, [
-        [1, 0, 0],
-        [1, 1, 1],
-        [0, 0, 0]]))
+      np.array_equal(self.game.map[1:5, 3:7], j.id * np.array([
+        [1, 0, 0, 0],
+        [1, 1, 1, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]])))
     self.assertEqual(0, j.state)
 
   def test_O(self):
     o = shape.O()
+
+    self.game.SpawnPiece(o)
+    self.game.PutPiece()
+
     self.assertTrue(
-      np.array_equal(o.shape, [
+      np.array_equal(self.game.map[1:5, 3:7], o.id * np.array([
         [0, 1, 1, 0],
         [0, 1, 1, 0],
-        [0, 0, 0, 0]]))
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]])))
     self.assertEqual(0, o.state)
-
-    o.Rotate90()
-    self.assertTrue(
-      np.array_equal(o.shape, [
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]]))
-    self.assertEqual(1, o.state)
-
-    o.Rotate90()
-    self.assertTrue(
-      np.array_equal(o.shape, [
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]]))
-    self.assertEqual(2, o.state)
-
-    o.Rotate90()
-    self.assertTrue(
-      np.array_equal(o.shape, [
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]]))
-    self.assertEqual(3, o.state)
 
   def test_Eq(self):
     t1 = shape.T()
@@ -167,6 +177,7 @@ class TestGameClient(unittest.TestCase):
     self.game.TextDraw()
 
     self.game.Rotate(3)
+    self.game.TextDraw()
     self.assertEqual(self.game.current_piece.x, 5)
     self.assertEqual(self.game.current_piece.y, 6)
     self.assertEqual(self.game.current_piece.state, 2)

@@ -67,13 +67,11 @@ def _InRange(x: int, y: int, len: int, wid: int):
   return (x >= 0 and y >= 0 and x < len and y < wid)
 
 def _PossibleContact(piece: shape.Shape, map: np.array):
-  (l, w) = piece.shape.shape
   (x, y) = (piece.x, piece.y)
-  for i in range(l):
-    for j in range(w):
-      if (not _InRange(x + i, y + j, map.shape[0], map.shape[1])
-          or map[i + x][y + j] != 0):
-        return True
+  for (i,j) in piece.GetShape():
+    if (not _InRange(x + i, y + j, map.shape[0], map.shape[1])
+        or map[i + x][y + j] != 0):
+      return True
   return False
 
 def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (

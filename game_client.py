@@ -131,7 +131,7 @@ class GameClient(GameState):
     # Only when move  or rotate at bottom locks the auto drop
     self._enable_lock_time = False
 
-    self.map = np.array([[0 for i in range(self.width)] for x in range(self.length)])
+    self.map = np.array([[0 for i in range(self.width)] for x in range(self.length)], dtype=np.int)
     # Lock for the game map
     self.mutex = Lock()
     # Lock for current_piece
@@ -432,7 +432,10 @@ class GameClient(GameState):
   def _LineClear(self):
     elimated_lines = []
     elimated_cnt = 0
-    for row in range(len(self.last_put_piece.shape)):
+    # Checks the 4 lines... This is not adapt to shape with higher than 4 lines
+    # but that's not a part of this game.  I don't have plan to support custom
+    # shapes.
+    for row in range(4):
       if not (self.last_put_piece.x + row >= 0 and
               self.last_put_piece.x + row < self.length):
         continue
@@ -480,11 +483,8 @@ class GameClient(GameState):
       if not self.CheckValidity(piece):
         return False
 
-      for i in range(piece.shape.shape[0]):
-        for j in range(piece.shape.shape[1]):
-          if piece.shape[i][j] != 0:
-            map[piece.x + i, piece.y + j] = piece.shape[i, j] * piece.id
-
+      for (i, j) in piece.GetShape():
+        map[piece.x + i, piece.y + j] = piece.id
       return True
     finally:
       if self.mutex_current_piece.locked():
@@ -625,17 +625,11 @@ class GameClient(GameState):
     :param offset: The inital offset to the piece
     :return: True if the current state can fit into the map.  False otherwise.
     """
-    piece_to_check = piece.copy()
-    piece_to_check.x += offset[0]
-    piece_to_check.y += offset[1]
-
-    for i in range(len(piece_to_check.shape)-1, -1, -1):
-      for j in range(len(piece_to_check.shape[0])):
-        if piece_to_check.shape[i][j] != 0:
-          if (i + piece_to_check.x < 0 or i + piece_to_check.x >= self.length or
-              j + piece_to_check.y < 0 or j + piece_to_check.y >= self.width or
-              self.map[i + piece_to_check.x][j + piece_to_check.y] != 0):
-            return False
+    for (i,j) in piece.GetShape():
+      if (i + piece.x + offset[0] < 0 or i + piece.x  + offset[0]>= self.length or
+          j + piece.y + offset[1] < 0 or j + piece.y + offset[1] >= self.width or
+          self.map[i + piece.x + offset[0]][j + piece.y + offset[1]] != 0):
+        return False
 
     return True
 

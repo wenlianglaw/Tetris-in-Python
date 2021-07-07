@@ -152,11 +152,9 @@ class TetrisUI:
     if color is None:
       color = (0, 0, 0, 1.0)
 
-    for (i, row) in enumerate(piece.shape):
-      for (j, cell) in enumerate(row):
-        if cell != 0:
-          self._DrawBlock(offset_i + i + piece.x, offset_j + j + piece.y,
-                          color, block_size)
+    for (i,j) in piece.GetShape():
+      self._DrawBlock(offset_i + i + piece.x, offset_j + j + piece.y,
+                      color, block_size)
 
   def _DrawMap(self):
     for (i, row) in enumerate(self.game.map):
