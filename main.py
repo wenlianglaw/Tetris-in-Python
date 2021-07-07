@@ -43,14 +43,15 @@
 
 import threading
 
-import agent
-import mcts_agent
+from agents import agent
+from agents import mcts_agent
+
 import game_client
 import tetirs_ui
 
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = False
+keyboard = True
 
 # Backend game
 game = game_client.GameClient(width=10, length=20)

@@ -15,9 +15,8 @@ import time
 
 import numpy as np
 
-import agent
+from agents import agent, mcts_algorithm
 import actions
-import mcts_algorithm
 import game_client
 import shape
 import threading

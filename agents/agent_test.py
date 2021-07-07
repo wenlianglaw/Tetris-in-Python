@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-import agent
+from agents import agent
 import game_client
 import shape
 
@@ -10,7 +10,7 @@ class AgentTest(unittest.TestCase):
   def setUp(self) -> None:
     self.game = game_client.GameClient(5, 4)
     self.env = agent.Env(self.game.GetState, self.game.ProcessActions,
-                    restart=self.game.Restart)
+                         restart=self.game.Restart)
     self.agent = agent.Agent(env=self.env)
 
   def test_GetAllPossiblePositions(self):
