@@ -69,6 +69,9 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
   def SearchForCurrentState(piece, game, init_path=None):
     path = []
 
+    if init_path is not None:
+      path = init_path.copy()
+
     ret.append((GetHardDroppedPiece(piece), path + [actions.Action(dir=actions.HARD_DROP)]))
 
     for y in [-1, 1]:

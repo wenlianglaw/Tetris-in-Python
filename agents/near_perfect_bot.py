@@ -12,7 +12,8 @@ import numpy as np
 
 class TheNearPerfectAgent(agent.Agent):
   def __init__(self, env: agent.Env,
-               weights: Tuple[float, float,float,float] = (-0.510066, 0.760666, -0.35663, -0.184483),
+               weights: Tuple[float, float,float,float] =
+               (-0.510066, 0.760666, -0.35663, -0.184483),
                decision_interval: float = 0.1):
     super().__init__(env, decision_interval)
     self.weights = weights
@@ -44,50 +45,52 @@ class TheNearPerfectAgent(agent.Agent):
             total_cnt += 1
       return total_cnt
 
+    def FindBestMove(ori_game):
+      all_possible_solutions = agent.GetPossiblePositionsQuickVersion(
+        state.current_piece, ori_game)
+
+      best_move = ()
+      best_move_score = -np.inf
+
+      for move in all_possible_solutions:
+        game = ori_game.copy()
+
+        if move[1][0].swap:
+          continue
+
+        # Puts piece
+        prev_eliminated = game.accumulated_lines_eliminated
+        game.PutPiece(move[0])
+
+        # holes
+        holes = GetHoles(game)
+
+        # Height of each col
+        col_heights = [GetColHeight(game.map[:, i]) for i in range(state.width)]
+
+        # aggregate_height
+        aggregate_height = np.sum(col_heights)
+
+        # complete lines
+        complete_lines = game.accumulated_lines_eliminated - prev_eliminated
+
+
+        # Bumpiness
+        bumpiness = 0
+        for i in range(game.width-1):
+          bumpiness += np.abs(col_heights[i] - col_heights[i+1])
+
+        score = np.dot(self.weights,
+                       [aggregate_height, complete_lines, holes, bumpiness])
+
+
+        if score >= best_move_score:
+          best_move = move
+          best_move_score = score
+      return (best_move_score, best_move)
+
     state = self.env.get_state()
     ori_game = game_client.CreateGameFromState(state)
-
-    all_possible_solutions = agent.GetAllPossiblePositions(
-      state.current_piece, ori_game)
-
-    best_move = ()
-    best_move_score = -np.inf
-
-    for move in all_possible_solutions:
-      game = ori_game.copy()
-
-      if move[1][0].swap:
-        continue
-
-      # Puts piece
-      prev_eliminated = game.accumulated_lines_eliminated
-      game.PutPiece(move[0])
-
-      # holes
-      holes = GetHoles(game)
-
-      # Height of each col
-      col_heights = [GetColHeight(game.map[:, i]) for i in range(state.width)]
-
-      # aggregate_height
-      aggregate_height = np.sum(col_heights)
-
-      # complete lines
-      complete_lines = game.accumulated_lines_eliminated - prev_eliminated
-
-
-      # Bumpiness
-      bumpiness = 0
-      for i in range(game.width-1):
-        bumpiness += np.abs(col_heights[i] - col_heights[i+1])
-
-      score = np.dot(self.weights,
-                     [aggregate_height, complete_lines, holes, bumpiness])
-
-
-      if score > best_move_score:
-        best_move = move
-        best_move_score = score
-
+    (best_move_score, best_move) = FindBestMove(ori_game)
     print("line eliminated:", ori_game.accumulated_lines_eliminated)
     return best_move[1]
