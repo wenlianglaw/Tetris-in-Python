@@ -31,6 +31,8 @@ import time
 from threading import Lock
 from typing import Tuple, List
 
+from readerwriterlock import rwlock
+
 import numpy as np
 
 import actions
@@ -143,7 +145,7 @@ class GameClient(GameState):
 
     self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)], dtype=np.int)
     # Lock for the game map
-    self.mutex_map = Lock()
+    self.rw_lock_map = rwlock.RWLockWrite()
     # Lock for current_piece
     self.mutex_current_piece = Lock()
     self.last_put_piece = None
@@ -188,7 +190,6 @@ class GameClient(GameState):
     self.held_piece = None
     self.current_piece = None
     # Lock of the game state
-    self.mutex_map = Lock()
     self.mutex_current_piece = Lock()
     self.is_gameover = False
     self.last_put_piece = None
@@ -462,9 +463,14 @@ class GameClient(GameState):
         elimated_lines.append(row + self.last_put_piece.x)
         elimated_cnt += 1
 
-    self.map = np.delete(self.map, elimated_lines, axis=0)
-    self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width),
-                                               dtype=np.int), axis=0)
+    wlock_map = self.rw_lock_map.gen_wlock()
+    try:
+      wlock_map.acquire()
+      self.map = np.delete(self.map, elimated_lines, axis=0)
+      self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width),
+                                                 dtype=np.int), axis=0)
+    finally:
+      wlock_map.release()
 
     self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
@@ -497,7 +503,6 @@ class GameClient(GameState):
     :returns: True if the piece has been put.  False otherwise.
     """
     try:
-      self.mutex_map.acquire()
       if not piece:
         self.mutex_current_piece.acquire()
         piece = self.current_piece
@@ -514,7 +519,6 @@ class GameClient(GameState):
     finally:
       if self.mutex_current_piece.locked():
         self.mutex_current_piece.release()
-      self.mutex_map.release()
 
   def _PostPutPiece(self, piece: shape.Shape = None):
     if piece is not None:
@@ -658,13 +662,17 @@ class GameClient(GameState):
     :param offset: The inital offset to the piece
     :return: True if the current state can fit into the map.  False otherwise.
     """
-    for (i,j) in piece.GetShape():
-      pos_i = i + piece.x + offset[0]
-      pos_j = j + piece.y + offset[1]
-      if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
-          self.map[pos_i][pos_j] != 0):
-        return False
-
+    rlock_map = self.rw_lock_map.gen_rlock()
+    try:
+      rlock_map.acquire()
+      for (i,j) in piece.GetShape():
+        pos_i = i + piece.x + offset[0]
+        pos_j = j + piece.y + offset[1]
+        if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
+            self.map[pos_i][pos_j] != 0):
+          return False
+    finally:
+      rlock_map.release()
     return True
 
   def _GetNextBag(self):

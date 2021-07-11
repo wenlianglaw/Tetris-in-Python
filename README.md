@@ -14,6 +14,7 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - scipy
 - pyopengl
 - pyopengl-accelerate
+- readerwriterlock
 
 Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
 
