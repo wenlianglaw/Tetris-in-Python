@@ -6,6 +6,10 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 
 ![demo2.gif](https://github.com/wenlianglaw/Tetris-in-Python/blob/master/gifs/demo2_normal_play.gif)
 
+https://user-images.githubusercontent.com/9002840/125180849-e4442980-e1b3-11eb-8db2-d5de24bcb98b.mp4
+
+
+
 ## Requirements
 
 - numpy
