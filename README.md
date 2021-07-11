@@ -6,13 +6,7 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 
 ![demo2.gif](https://github.com/wenlianglaw/Tetris-in-Python/blob/master/gifs/demo2_normal_play.gif)
 
-
-
-https://user-images.githubusercontent.com/9002840/125182831-31c99200-e1c6-11eb-816b-ffcdcd252a3e.mp4
-
-
-
-
+![demo3.gif](https://github.com/wenlianglaw/Tetris-in-Python/blob/master/gifs/near_perfect_bot.gif)
 
 ## Requirements
 
