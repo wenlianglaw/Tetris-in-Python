@@ -143,7 +143,7 @@ class GameClient(GameState):
 
     self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)], dtype=np.int)
     # Lock for the game map
-    self.mutex = Lock()
+    self.mutex_map = Lock()
     # Lock for current_piece
     self.mutex_current_piece = Lock()
     self.last_put_piece = None
@@ -188,7 +188,7 @@ class GameClient(GameState):
     self.held_piece = None
     self.current_piece = None
     # Lock of the game state
-    self.mutex = Lock()
+    self.mutex_map = Lock()
     self.mutex_current_piece = Lock()
     self.is_gameover = False
     self.last_put_piece = None
@@ -497,7 +497,7 @@ class GameClient(GameState):
     :returns: True if the piece has been put.  False otherwise.
     """
     try:
-      self.mutex.acquire()
+      self.mutex_map.acquire()
       if not piece:
         self.mutex_current_piece.acquire()
         piece = self.current_piece
@@ -514,7 +514,7 @@ class GameClient(GameState):
     finally:
       if self.mutex_current_piece.locked():
         self.mutex_current_piece.release()
-      self.mutex.release()
+      self.mutex_map.release()
 
   def _PostPutPiece(self, piece: shape.Shape = None):
     if piece is not None:
@@ -659,9 +659,10 @@ class GameClient(GameState):
     :return: True if the current state can fit into the map.  False otherwise.
     """
     for (i,j) in piece.GetShape():
-      if (i + piece.x + offset[0] < 0 or i + piece.x  + offset[0]>= self.height or
-          j + piece.y + offset[1] < 0 or j + piece.y + offset[1] >= self.width or
-          self.map[i + piece.x + offset[0]][j + piece.y + offset[1]] != 0):
+      pos_i = i + piece.x + offset[0]
+      pos_j = j + piece.y + offset[1]
+      if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
+          self.map[pos_i][pos_j] != 0):
         return False
 
     return True

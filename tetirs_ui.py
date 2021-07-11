@@ -22,6 +22,7 @@ from OpenGL.GLUT import *
 import game_client
 import shape
 import actions
+import settings
 
 import numpy as np
 
@@ -38,17 +39,6 @@ BLOCK_SIZE = 15
 
 DAS = 20  # ms
 ARR = 80  # ms
-
-# Control keys
-SWAP = GLUT_KEY_UP
-LEFT = GLUT_KEY_LEFT
-RIGHT = GLUT_KEY_RIGHT
-DOWN = GLUT_KEY_DOWN
-HARD_DROP = b' '
-ROTATE90 = b'r'
-ROTATE180 = b'w'
-ROTATE270 = b'e'
-RESTART = b'g'
 
 def GetColorFromPiece(piece):
   if isinstance(piece, shape.I):
@@ -250,23 +240,23 @@ class TetrisUI:
       self.already_instant_soft_dropped = False
 
   def _SpecialInput(self, key, x, y):
-    if key == SWAP:
+    if key == settings.SWAP:
       self.key_pressed["SWAP"] = True
-    if key == DOWN:
+    if key == settings.DOWN:
       self.key_pressed["DOWN"] = True
-    if key == LEFT:
+    if key == settings.LEFT:
       self.key_pressed["LEFT"] = True
-    if key == RIGHT:
+    if key == settings.RIGHT:
       self.key_pressed["RIGHT"] = True
 
   def _SpecialUpInput(self, key, x, y):
-    if key == SWAP:
+    if key == settings.SWAP:
       self.key_pressed["SWAP"] = False
-    if key == DOWN:
+    if key == settings.DOWN:
       self.key_pressed["DOWN"] = False
-    if key == LEFT:
+    if key == settings.LEFT:
       self.key_pressed["LEFT"] = False
-    if key == RIGHT:
+    if key == settings.RIGHT:
       self.key_pressed["RIGHT"] = False
     self.first_input = True
     self.last_input = 0
@@ -278,29 +268,29 @@ class TetrisUI:
     self.blitz_target_completed = False
 
   def keyboardFunc(self, key, x, y):
-    if key == ROTATE90:
+    if key == settings.ROTATE90:
       if self._rotation_active:
         self.input_buffer.append(actions.Action(rotation=1))
         self._rotation_active = False
-    if key == ROTATE270:
+    if key == settings.ROTATE270:
       if self._rotation_active:
         self.input_buffer.append(actions.Action(rotation=3))
         self._rotation_active = False
-    if key == ROTATE180:
+    if key == settings.ROTATE180:
       if self._rotation_active:
         self.input_buffer.append(actions.Action(rotation=2))
         self._rotation_active = False
-    if key == HARD_DROP:
+    if key == settings.HARD_DROP:
       if self._hard_drop_active:
         self.input_buffer.append(actions.Action(dir=actions.HARD_DROP))
         self._hard_drop_active = False
-    if key == RESTART:
+    if key == settings.RESTART:
       self._RestartGame()
 
   def _KeyboardUpFunc(self, key, x, y):
-    if key in (ROTATE90, ROTATE180, ROTATE270):
+    if key in (settings.ROTATE90, settings.ROTATE180, settings.ROTATE270):
       self._rotation_active = True
-    if key == HARD_DROP:
+    if key == settings.HARD_DROP:
       self._hard_drop_active = True
 
     self.first_input = True

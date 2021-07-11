@@ -50,9 +50,11 @@ from agents import near_perfect_bot
 import game_client
 import tetirs_ui
 
-
 # Other I/O settings can be configured in the tetris_ui.py file
 keyboard = False
+
+# Disable this to run the AI in background mode
+enable_ui = True
 
 # Backend game
 game = game_client.GameClient(width=10, height=20)
@@ -61,7 +63,8 @@ print(game.height, game.width)
 # Initializes the front end UI with backend game.
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
 ui_th = threading.Thread(group=None, target=ui.Run, daemon=True)
-ui_th.start()
+if enable_ui:
+  ui_th.start()
 
 # Initializes the AI environment
 # get_state:  Callable[[], game_client.GameState]
@@ -93,4 +96,6 @@ if keyboard:
 
 # Exiting...
 agent_th.join()
-ui_th.join()
+
+if enable_ui:
+  ui_th.join()
