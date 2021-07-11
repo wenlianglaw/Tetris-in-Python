@@ -94,7 +94,7 @@ class MCTSNode(mcts_algorithm.Node):
 
   def _CountSubHoles(self, map: np.array) -> int:
     sum = 0
-    for i in range(0, self.game.length, 2):
+    for i in range(0, self.game.height, 2):
       sum += self._CountHoles(map[i:i+1, :])
     return sum
 

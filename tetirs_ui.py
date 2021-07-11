@@ -177,7 +177,7 @@ class TetrisUI:
       self.game.SetLevel(int(self.game.line_dropped / 14))
 
   def _Sprint40Record(self):
-    if self.game.accumulated_line_eliminated >= 40:
+    if self.game.accumulated_lines_eliminated >= 40:
       if not self.sprint40_target_completed:
         print("40 lines:", time.time() - self.start_time)
         self.sprint40_target_completed = True

@@ -10,49 +10,49 @@ import abc
 import numpy as np
 
 # These offsets are stored as global variables to avoid mem copy.
-SHAPES_I_ = np.array([
+_SHAPES_I = np.array([
   [(1,0), (1,1), (1,2), (1,3)],
   [(0,2), (1,2), (2,2), (3,2)],
   [(2,0), (2,1), (2,2), (2,3)],
   [(0,1), (1,1), (2,1), (3,1)],
   ], dtype=np.int)
 
-SHAPES_J_ = np.array([
+_SHAPES_J = np.array([
   [(0,0), (1,0), (1,1), (1,2)],
   [(0,1), (1,1), (2,1), (0,2)],
   [(1,0), (1,1), (1,2), (2,2)],
   [(2,0), (0,1), (1,1), (2,1)],
   ], dtype=np.int)
 
-SHAPES_L_ = np.array([
+_SHAPES_L = np.array([
   [(1,0), (1,1), (0,2), (1,2)],
   [(0,1), (1,1), (2,1), (2,2)],
   [(1,0), (1,1), (1,2), (2,0)],
   [(0,0), (0,1), (1,1), (2,1)],
   ], dtype=np.int)
 
-SHAPES_O_ = np.array([
+_SHAPES_O = np.array([
   [(0,1), (1,1), (0,2), (1,2)],
   [(0,1), (1,1), (0,2), (1,2)],
   [(0,1), (1,1), (0,2), (1,2)],
   [(0,1), (1,1), (0,2), (1,2)],
   ], dtype=np.int)
 
-SHAPES_S_ = np.array([
+_SHAPES_S = np.array([
   [(1,0), (0,1), (1,1), (0,2)],
   [(0,1), (1,1), (1,2), (2,2)],
   [(1,1), (1,2), (2,0), (2,1)],
   [(0,0), (1,0), (1,1), (2,1)],
   ], dtype=np.int)
 
-SHAPES_T_ = np.array([
+_SHAPES_T = np.array([
   [(0,1), (1,0), (1,1), (1,2)],
   [(0,1), (1,1), (2,1), (1,2)],
   [(1,0), (1,1), (1,2), (2,1)],
   [(1,0), (0,1), (1,1), (2,1)],
   ], dtype=np.int)
 
-SHAPES_Z_ = np.array([
+_SHAPES_Z = np.array([
   [(0,0), (0,1), (1,1), (1,2)],
   [(1,1), (2,1), (1,2), (0,2)],
   [(1,0), (1,1), (2,1), (2,2)],
@@ -84,6 +84,10 @@ class Shape:
   @abc.abstractmethod
   def Rotate270(self):
     self.state = (self.state + 3) % 4
+
+  def Rotate(self, times: int):
+    for i in range(times%4):
+      self.Rotate90()
 
   @abc.abstractmethod
   def Init(self):
@@ -127,7 +131,7 @@ class I(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_I_
+    self.shape = _SHAPES_I
 
 class J(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -137,7 +141,7 @@ class J(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_J_
+    self.shape = _SHAPES_J
 
 class L(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -147,7 +151,7 @@ class L(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_L_
+    self.shape = _SHAPES_L
 
 class O(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -157,7 +161,7 @@ class O(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_O_
+    self.shape = _SHAPES_O
 
 class S(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -167,7 +171,7 @@ class S(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_S_
+    self.shape = _SHAPES_S
 
 class T(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -177,7 +181,7 @@ class T(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_T_
+    self.shape = _SHAPES_T
 
 class Z(Shape):
   def __init__(self, start_x: int = 1, start_y: int = 3):
@@ -187,5 +191,5 @@ class Z(Shape):
 
   def Init(self):
     super().Init()
-    self.shape = SHAPES_Z_
+    self.shape = _SHAPES_Z
 

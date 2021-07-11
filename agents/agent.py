@@ -41,14 +41,6 @@ class Agent:
     possible_actions = self.GetAllPossiblePositions(state.current_piece, state)
     return random.choice(possible_actions)[1]
 
-
-  def GetAllPossiblePositions(self, piece:shape.Shape,
-                              state:game_client.GameState) -> (
-      List[Tuple[shape.Shape, List[actions.Action]]]):
-
-    game = game_client.CreateGameFromState(state)
-    return GetAllPossiblePositions(piece, game)
-
   def RunUntilGameEnd(self):
     state = self.env.get_state()
     while not state.is_gameover:
@@ -68,23 +60,57 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
   """ Gets some possible positions.  This is a quicker and simpler version of GetALlPossiblePositions.
 
   This is intended to run fast.
+  :returns (piece inish state, [actions to this state])
   """
+  def GetHardDroppedPiece(piece):
+    hard_drop_piece = piece.copy()
+    while game.CheckValidity(hard_drop_piece, (1,0)):
+      hard_drop_piece.x += 1
+    return hard_drop_piece
+
   ret = []
 
-  def SearchForCurrentState(piece, game):
-    ret.append((piece.copy(), [actions.Action(dir=actions.HARD_DROP)]))
+  def SearchForCurrentState(piece, game, init_path=None):
+    path = []
+
+    ret.append((GetHardDroppedPiece(piece), path + [actions.Action(dir=actions.HARD_DROP)]))
 
     for y in [-1, 1]:
-      path = []
+      if init_path is not None:
+        path = init_path.copy()
+      else:
+        path = []
       moved_piece = piece.copy()
       while game.CheckValidity(moved_piece, (0, y)):
         moved_piece.y += y
-        path.append(actions.Action(dir=actions.LEFT))
-        ret.append((moved_piece, path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
+        if y == -1:
+          path.append(actions.Action(dir=actions.LEFT))
+        else:
+          path.append(actions.Action(dir=actions.RIGHT))
+        ret.append((GetHardDroppedPiece(moved_piece),
+                    path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
 
   for rotate in range(4):
+    can_break = False
+    # For shape I, S and Z, we don't need to rotate it 180 and 270.
+    for instance in [shape.I, shape.S, shape.Z]:
+      if isinstance(piece, instance) and rotate > 1:
+        can_break = True
+
+    # For shape O, we don't need to rotate at all.
+    if isinstance(piece, shape.O) and rotate > 0:
+      can_break = True
+
+    if can_break:
+      break
+
     rotated_piece = piece.copy()
-    SearchForCurrentState(rotated_piece.copy(), game)
+
+    rotated_piece.Rotate(rotate)
+    if rotate == 0:
+      SearchForCurrentState(rotated_piece.copy(), game)
+    else:
+      SearchForCurrentState(rotated_piece.copy(), game, [actions.Action(rotation=rotate)])
 
   return ret
 
@@ -107,7 +133,7 @@ def GetAllPossiblePositions(piece:shape.Shape,
     action = actions.Action(swap=True)
     ret.append((game.piece_list[0], [action]))
 
-  visit = np.zeros((game.length, game.width, 4), dtype=bool)
+  visit = np.zeros((game.height, game.width, 4), dtype=bool)
 
   # Element is (piece, [Actions])
 

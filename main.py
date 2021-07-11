@@ -45,17 +45,18 @@ import threading
 
 from agents import agent
 from agents import mcts_agent
+from agents import near_perfect_bot
 
 import game_client
 import tetirs_ui
 
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = True
+keyboard = False
 
 # Backend game
-game = game_client.GameClient(width=10, length=20)
-print(game.length, game.width)
+game = game_client.GameClient(width=10, height=20)
+print(game.height, game.width)
 
 # Initializes the front end UI with backend game.
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
@@ -76,9 +77,11 @@ env = agent.Env(get_state=game.GetState,
 random_agent = agent.Agent(env)
 
 mcts_agent = mcts_agent.MCTSAgent(env, thread_num=2, iterations_per_move=200)
+near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env)
+
 # Agent being used
-agent = mcts_agent
-agent_th = threading.Thread(group=None, target=mcts_agent.RunUntilGameEnd, daemon=True)
+agent = near_perfect_bot
+agent_th = threading.Thread(group=None, target=agent.RunUntilGameEnd, daemon=True)
 
 if not keyboard:
   agent_th.start()

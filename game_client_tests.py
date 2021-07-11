@@ -8,7 +8,7 @@ import shape
 
 class TestShapeRotations(unittest.TestCase):
   def setUp(self):
-    self.game = game_client.GameClient(width=10, length=5)
+    self.game = game_client.GameClient(width=10, height=5)
 
   def test_I(self):
     i = shape.I()
@@ -104,7 +104,7 @@ class TestShapeRotations(unittest.TestCase):
 
 class TestGameClient(unittest.TestCase):
   def setUp(self):
-    self.game = game_client.GameClient(width=10, length=5)
+    self.game = game_client.GameClient(width=10, height=5)
 
   def test_PutPiece(self):
     i = shape.I()
@@ -126,14 +126,14 @@ class TestGameClient(unittest.TestCase):
     self.assertFalse(self.game.PutPiece(i))
 
   def test_RotationOK(self):
-    self.game = game_client.GameClient(width=4, length=5)
+    self.game = game_client.GameClient(width=4, height=5)
     t = shape.T()
     (t.x, t.y) = (6,1)
     self.game.SpawnPiece(t)
     self.assertTrue(self.game.Rotate(1))
 
   def test_RotationFail(self):
-    self.game = game_client.GameClient(width=3, length=4)
+    self.game = game_client.GameClient(width=3, height=4)
     i = shape.I()
     (i.x, i.y) = (0,0)
     i.Rotate90()
@@ -396,7 +396,7 @@ class TestGameClient(unittest.TestCase):
     self.game.SpawnPiece(o)
     self.game.PutPiece()
     self.assertTrue(np.all(self.game.map==0))
-    self.assertEqual(self.game.map.shape, (self.game.length, self.game.width))
+    self.assertEqual(self.game.map.shape, (self.game.height, self.game.width))
 
   def test_GameCopy(self):
     game = self.game.copy()

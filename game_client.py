@@ -58,12 +58,20 @@ TSD = 60
 TST = 80
 PC = 120
 
+# ATTACKS
+ATTACK_DOUBLE = 1
+ATTACK_TSS = 2
+ATTACK_TRIPLE = 2
+ATTACK_QUAD = 4
+ATTACK_TSD = 4
+ATTACK_TST = 6
+ATTACK_PC = 10
 
 class GameState:
   def __init__(self):
-    self.length = 0
+    self.height = 0
     self.width = 0
-    self.length_buffer = 0
+    self.height_buffer = 0
     self.map = np.array([])
     self.current_piece = None
     self.held_piece = None
@@ -71,10 +79,12 @@ class GameState:
     self.piece_list = []
     self.is_gameover = False
     self.can_swap = True
-    self.accumulated_eliminated = 0
+    self.accumulated_lines_eliminated = 0
     self.line_dropped = 0
     self.blevel_increase = False
     self.level = 0
+    self.line_sent = 0
+    self.line_received = 0
 
   def __deepcopy__(self, memodict={}):
     another = copy.copy(self)
@@ -91,7 +101,7 @@ class GameState:
 
   def __str__(self):
     ret = ""
-    ret += f"""length: {self.length}
+    ret += f"""height: {self.height}
 width: {self.width}
 map: {self.map}
 current_piece: {self.current_piece}
@@ -106,15 +116,15 @@ level: {self.level}
 
 
 class GameClient(GameState):
-  def __init__(self, length: int = DEFAULT_LENGTH,
+  def __init__(self, height: int = DEFAULT_LENGTH,
                width: int = DEFAULT_WIDTH,
                refill_threshold: int = REFILL_THRESHOLD,
-               length_buffer: int = DEFAULT_LENGTH_BUFFER):
+               height_buffer: int = DEFAULT_LENGTH_BUFFER):
     super().__init__()
 
     # 4 lines buffer
-    self.length_buffer = length_buffer
-    self.length = length + length_buffer
+    self.height_buffer = height_buffer
+    self.height = height + height_buffer
     self.width = width
     self.refill_threshold = refill_threshold
 
@@ -131,7 +141,7 @@ class GameClient(GameState):
     # Only when move  or rotate at bottom locks the auto drop
     self._enable_lock_time = False
 
-    self.map = np.array([[0 for i in range(self.width)] for x in range(self.length)], dtype=np.int)
+    self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)], dtype=np.int)
     # Lock for the game map
     self.mutex = Lock()
     # Lock for current_piece
@@ -144,6 +154,7 @@ class GameClient(GameState):
     # actions.Action
     self.last_action = None
     self.disable_autodrop = False
+    self.line_tobesent = 0
 
     # Used when calculate the auto drop interval decrease based on current level.
     # Generated from the sigmoid function
@@ -165,14 +176,14 @@ class GameClient(GameState):
 
     self._RefillPieces()
     self._TakePieceFromList()
-    self.accumulated_line_eliminated = 0
+    self.accumulated_lines_eliminated = 0
 
     # When soft-dropping, temporarily disable auto-drop
     self.soft_drop = False
     self.line_dropped = 0
 
   def Restart(self):
-    self.map = np.array([[0 for i in range(self.width)] for x in range(self.length)])
+    self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)])
     self.piece_list = []
     self.held_piece = None
     self.current_piece = None
@@ -190,9 +201,12 @@ class GameClient(GameState):
     self.can_swap = True
     self.score = 0
     self.accumulate_lock_time = 0
-    self.accumulated_line_eliminated = 0
+    self.accumulated_lines_eliminated = 0
     self.soft_drop = False
     self.line_dropped = 0
+    self.line_sent = 0
+    self.line_received = 0
+    self.line_tobesent = 0
 
     self._enable_lock_time = False
 
@@ -219,7 +233,6 @@ class GameClient(GameState):
 
   def copy(self):
     another = copy.copy(self)
-    another.line_dropped = self.line_dropped
     another.last_action = copy.copy(self.last_action)
     if self.last_put_piece is not None:
       another.last_put_piece = self.last_put_piece.copy()
@@ -389,16 +402,17 @@ class GameClient(GameState):
       self.mutex_current_piece.release()
 
   def CheckGameOver(self):
-    self.is_gameover = np.any(self.map[0:self.length_buffer, :] != 0)
+    self.is_gameover = np.any(self.map[0:self.height_buffer, :] != 0)
     return self.is_gameover
 
-  def _CalEliminateScore(self, n_eliminate: int) -> int:
+  def _AnalyzeElimination(self, n_eliminate: int) -> int:
     ret = 0
     is_last_put_t = isinstance(self.last_put_piece, shape.T)
     if n_eliminate == 1:
       if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TSS")
         ret += TSS
+        self.line_tobesent += ATTACK_TSS
       else:
         ret += SINGLE
 
@@ -407,25 +421,30 @@ class GameClient(GameState):
       if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TSD")
         ret += TSD
+        self.line_tobesent += ATTACK_TSD
       # Normal Double
       else:
         ret += DOUBLE
-
+        self.line_tobesent += ATTACK_DOUBLE
     if n_eliminate == 3:
       # TST
       if (is_last_put_t and self.last_action and self.last_action.rotation != 0):
         print("TST")
         ret += TST
+        self.line_tobesent += ATTACK_TST
       else:
         ret += TRIPLE
+        self.line_tobesent += ATTACK_TRIPLE
 
     if n_eliminate == 4:
       ret += QUAD
+      self.line_tobesent += ATTACK_QUAD
 
     # Checks for PC
     if np.all(self.map == 0):
       print("PC")
       ret += PC
+      self.line_tobesent += ATTACK_PC
 
     return ret * (self.level + 3)
 
@@ -437,7 +456,7 @@ class GameClient(GameState):
     # shapes.
     for row in range(4):
       if not (self.last_put_piece.x + row >= 0 and
-              self.last_put_piece.x + row < self.length):
+              self.last_put_piece.x + row < self.height):
         continue
       if np.all(self.map[self.last_put_piece.x + row, :] != 0):
         elimated_lines.append(row + self.last_put_piece.x)
@@ -446,9 +465,15 @@ class GameClient(GameState):
     self.map = np.delete(self.map, elimated_lines, axis=0)
     self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width),
                                                dtype=np.int), axis=0)
-    self.accumulated_line_eliminated += elimated_cnt
+    self.accumulated_lines_eliminated += elimated_cnt
 
-    self.score += self._CalEliminateScore(n_eliminate=elimated_cnt)
+    self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
+
+  def _SendAttack(self):
+    """Send attack to target."""
+    # This feature has not been implemented yet.
+    self.line_sent += self.line_tobesent
+    self.line_tobesent = 0
 
   def PutPiece(self, piece: shape.Shape = None, map: np.array = None):
     """ Puts a piece to map if it is a valid placement then execute the post processing.
@@ -493,10 +518,12 @@ class GameClient(GameState):
 
   def _PostPutPiece(self):
     self.last_put_piece = self.current_piece
+    # LineClear should be called prior to SendAttack
     self._LineClear()
     self._TakePieceFromList()
     self.CheckGameOver()
     self._ResetLockTime()
+    self._SendAttack()
     self.can_swap = True
     self.line_dropped += 1
 
@@ -626,7 +653,7 @@ class GameClient(GameState):
     :return: True if the current state can fit into the map.  False otherwise.
     """
     for (i,j) in piece.GetShape():
-      if (i + piece.x + offset[0] < 0 or i + piece.x  + offset[0]>= self.length or
+      if (i + piece.x + offset[0] < 0 or i + piece.x  + offset[0]>= self.height or
           j + piece.y + offset[1] < 0 or j + piece.y + offset[1] >= self.width or
           self.map[i + piece.x + offset[0]][j + piece.y + offset[1]] != 0):
         return False
@@ -661,9 +688,9 @@ class GameClient(GameState):
     self.piece_list = self.piece_list[1:]
 
 def CreateGameFromState(state: GameState) -> GameClient:
-  game = GameClient(length=state.length - state.length_buffer,
+  game = GameClient(height=state.height - state.height_buffer,
                     width=state.width,
-                    length_buffer=state.length_buffer)
+                    height_buffer=state.height_buffer)
   game.map = np.copy(state.map)
   game.current_piece = state.current_piece.copy()
   if state.held_piece is not None:
@@ -674,6 +701,8 @@ def CreateGameFromState(state: GameState) -> GameClient:
   game.piece_list = state.piece_list.copy()
   game.can_swap = state.can_swap
   game.is_gameover = state.is_gameover
-  game.accumulated_line_eliminated = state.accumulated_eliminated
+  game.accumulated_lines_eliminated = state.accumulated_lines_eliminated
   game.line_dropped = state.line_dropped
+  game.line_sent = state.line_sent
+  game.line_received = state.line_received
   return game
