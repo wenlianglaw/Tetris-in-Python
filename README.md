@@ -8,7 +8,7 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 
 
 
-https://user-images.githubusercontent.com/9002840/125183617-cfc05b00-e1cc-11eb-83ca-50db3599cbb1.mp4
+https://user-images.githubusercontent.com/9002840/125183622-dfd83a80-e1cc-11eb-92d4-f39e4f4fd1ea.mp4
 
 
 
