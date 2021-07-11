@@ -29,10 +29,10 @@ class Env:
 
 
 class Agent:
-  def __init__(self, env: Env):
+  def __init__(self, env: Env, decision_interval: float = 0.1):
     self.env = env
     # Time interval between making two decisions
-    self.decision_interval = 100 / 1000
+    self.decision_interval = decision_interval
 
   @abc.abstractmethod
   def MakeDecision(self) -> List[actions.Action]:
@@ -41,15 +41,13 @@ class Agent:
     possible_actions = self.GetAllPossiblePositions(state.current_piece, state)
     return random.choice(possible_actions)[1]
 
-  def RunUntilGameEnd(self):
-    state = self.env.get_state()
-    while not state.is_gameover:
+  def RunGame(self):
+    while True:
       start = time.time()
       action = self.MakeDecision()
       self.env.take_actions(action)
       print(f"{(time.time() - start) * 1000} ms")
       time.sleep(self.decision_interval)
-    print("Game Over")
 
 
 def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
@@ -67,8 +65,6 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
     while game.CheckValidity(hard_drop_piece, (1,0)):
       hard_drop_piece.x += 1
     return hard_drop_piece
-
-  ret = []
 
   def SearchForCurrentState(piece, game, init_path=None):
     path = []
@@ -89,6 +85,12 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
           path.append(actions.Action(dir=actions.RIGHT))
         ret.append((GetHardDroppedPiece(moved_piece),
                     path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
+
+
+  ret = []
+
+  if game.can_swap:
+    ret.append((piece, [actions.Action(swap=True)]))
 
   for rotate in range(4):
     can_break = False

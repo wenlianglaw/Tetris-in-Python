@@ -174,7 +174,7 @@ class TetrisUI:
 
   def _SetLevel(self):
     if self.keyboard:
-      self.game.SetLevel(int(self.game.line_dropped / 14))
+      self.game.SetLevel(int(self.game.piece_dropped / 14))
 
   def _Sprint40Record(self):
     if self.game.accumulated_lines_eliminated >= 40:

@@ -30,7 +30,7 @@ from typing import List, Set, Dict, Tuple
 
 class MCTSNode(mcts_algorithm.Node):
   def __init__(self, game:game_client.GameClient=None,
-               init_line_dropped:int=0,
+               init_piece_dropped:int=0,
                saved_solutions:
                Dict[mcts_algorithm.Node,
                     Tuple[shape.Shape, List[actions.Action]]] = None,
@@ -44,7 +44,7 @@ class MCTSNode(mcts_algorithm.Node):
     self.action_list = []
     self.game = game
     # game used for simulation
-    self.init_line_dropped = init_line_dropped
+    self.init_piece_dropped = init_piece_dropped
     self.root_score = root_score
 
   def FindChildren(self)->Set[mcts_algorithm.Node]:
@@ -65,7 +65,7 @@ class MCTSNode(mcts_algorithm.Node):
     for solution in all_possible_solutions:
       game = self.game.copy()
       game.ProcessActions(solution[1])
-      node = MCTSNode(game, self.init_line_dropped, root_score=self.root_score)
+      node = MCTSNode(game, self.init_piece_dropped, root_score=self.root_score)
       node.action_list = solution[1]
       ret.add(node)
 
@@ -82,7 +82,7 @@ class MCTSNode(mcts_algorithm.Node):
     acts = random.choice(all_possible_actions)[1]
     game.ProcessActions(acts)
 
-    ret = MCTSNode(game, self.init_line_dropped)
+    ret = MCTSNode(game, self.init_piece_dropped)
     return ret
 
   def _Connected0Area(self, map: np.array) -> int:
@@ -121,9 +121,9 @@ class MCTSNode(mcts_algorithm.Node):
     if game.is_gameover:
       return -10000
 
-    return (game.score * 10 + game.line_dropped - 4*sub_holes)
+    return (game.score * 10 + game.piece_dropped - 4*sub_holes)
 
-#    return (game.score * 10 + game.line_dropped -4*(holes-1)
+#    return (game.score * 10 + game.piece_dropped -4*(holes-1)
 #            -2*sub_holes - 1 * compactness)
 
   def IsTerminal(self):
@@ -133,7 +133,7 @@ class MCTSNode(mcts_algorithm.Node):
 
   def PlayUntilTermination(self)->float:
     game = self.game.copy()
-    while not game.is_gameover and game.line_dropped - self.init_line_dropped < 2:
+    while not game.is_gameover and game.piece_dropped - self.init_piece_dropped < 4:
       all_possible_actions = agent.GetAllPossiblePositions(
         game.current_piece, game.GetState())
       acts = random.choice(all_possible_actions)[1]
@@ -159,12 +159,12 @@ class MCTSNode(mcts_algorithm.Node):
             node1.game.held_piece == node2.game.held_piece)
 
 
-class MCTSAgent(agent.Agent, ):
+class MCTSAgent(agent.Agent):
   def __init__(self, env: agent.Env,
                thread_num:int=1, iterations_per_move:int=100):
     super().__init__(env)
     self.thread_num = thread_num
-    self.iterations = iterations_per_move
+    self.iterations_per_move = iterations_per_move
 
   def MakeDecision(self) -> List[actions.Action]:
     state = self.env.get_state()
@@ -172,15 +172,15 @@ class MCTSAgent(agent.Agent, ):
       return []
 
     game = game_client.CreateGameFromState(state)
-    tree = MCTSNode(game, game.line_dropped)
+    tree = MCTSNode(game, game.piece_dropped)
     mcts = mcts_algorithm.MCTS()
 
-    print(game.line_dropped)
-    print(game.score)
     game.TextDraw()
+    print(game.piece_dropped)
+    print(game.score)
 
     def SingleThreadRollout():
-      for _ in range(self.iterations):
+      for _ in range(self.iterations_per_move):
         start_time = time.time()
         tree.root_score = game.score
         mcts.Rollout(tree)

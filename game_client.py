@@ -80,7 +80,7 @@ class GameState:
     self.is_gameover = False
     self.can_swap = True
     self.accumulated_lines_eliminated = 0
-    self.line_dropped = 0
+    self.piece_dropped = 0
     self.blevel_increase = False
     self.level = 0
     self.line_sent = 0
@@ -110,7 +110,7 @@ score: {self.score}
 piece_list: {self.piece_list}
 is_gameover: {self.is_gameover}
 can_swap: {self.can_swap}
-line_dropped: {self.line_dropped}
+piece_dropped: {self.piece_dropped}
 level: {self.level}
     """
 
@@ -180,7 +180,7 @@ class GameClient(GameState):
 
     # When soft-dropping, temporarily disable auto-drop
     self.soft_drop = False
-    self.line_dropped = 0
+    self.piece_dropped = 0
 
   def Restart(self):
     self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)])
@@ -203,7 +203,7 @@ class GameClient(GameState):
     self.accumulate_lock_time = 0
     self.accumulated_lines_eliminated = 0
     self.soft_drop = False
-    self.line_dropped = 0
+    self.piece_dropped = 0
     self.line_sent = 0
     self.line_received = 0
     self.line_tobesent = 0
@@ -448,7 +448,7 @@ class GameClient(GameState):
 
     return ret * (self.level + 3)
 
-  def _LineClear(self):
+  def _LineClear(self, game_map: np.array = None):
     elimated_lines = []
     elimated_cnt = 0
     # Checks the 4 lines... This is not adapt to shape with higher than 4 lines
@@ -465,8 +465,8 @@ class GameClient(GameState):
     self.map = np.delete(self.map, elimated_lines, axis=0)
     self.map = np.insert(self.map, 0, np.zeros((elimated_cnt, self.width),
                                                dtype=np.int), axis=0)
-    self.accumulated_lines_eliminated += elimated_cnt
 
+    self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
 
   def _SendAttack(self):
@@ -475,15 +475,15 @@ class GameClient(GameState):
     self.line_sent += self.line_tobesent
     self.line_tobesent = 0
 
-  def PutPiece(self, piece: shape.Shape = None, map: np.array = None):
+  def PutPiece(self, piece: shape.Shape = None):
     """ Puts a piece to map if it is a valid placement then execute the post processing.
 
     :param piece: The piece to put, if None, put the self.current_piece
     :param map: The map where the piece puts, if None, self.map will be used.
     :returns: True if the piece has been put.  False otherwise.
     """
-    if self._PrePutPiece(piece, map):
-      self._PostPutPiece()
+    if self._PrePutPiece(piece):
+      self._PostPutPiece(piece)
       return True
     else:
       return False
@@ -516,16 +516,22 @@ class GameClient(GameState):
         self.mutex_current_piece.release()
       self.mutex.release()
 
-  def _PostPutPiece(self):
-    self.last_put_piece = self.current_piece
+  def _PostPutPiece(self, piece: shape.Shape = None):
+    if piece is not None:
+      self.last_put_piece = piece
+    else:
+      self.last_put_piece = self.current_piece
+
     # LineClear should be called prior to SendAttack
     self._LineClear()
-    self._TakePieceFromList()
+    if piece is None:
+      self._TakePieceFromList()
+
     self.CheckGameOver()
     self._ResetLockTime()
     self._SendAttack()
     self.can_swap = True
-    self.line_dropped += 1
+    self.piece_dropped += 1
 
   def TextDraw(self):
     preview_map = self.map.copy()
@@ -702,7 +708,7 @@ def CreateGameFromState(state: GameState) -> GameClient:
   game.can_swap = state.can_swap
   game.is_gameover = state.is_gameover
   game.accumulated_lines_eliminated = state.accumulated_lines_eliminated
-  game.line_dropped = state.line_dropped
+  game.piece_dropped = state.piece_dropped
   game.line_sent = state.line_sent
   game.line_received = state.line_received
   return game

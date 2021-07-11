@@ -76,12 +76,12 @@ env = agent.Env(get_state=game.GetState,
 
 random_agent = agent.Agent(env)
 
-mcts_agent = mcts_agent.MCTSAgent(env, thread_num=2, iterations_per_move=200)
-near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env)
+mcts_agent = mcts_agent.MCTSAgent(env, thread_num=1, iterations_per_move=200)
+near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env, decision_interval=0.01)
 
 # Agent being used
 agent = near_perfect_bot
-agent_th = threading.Thread(group=None, target=agent.RunUntilGameEnd, daemon=True)
+agent_th = threading.Thread(group=None, target=agent.RunGame, daemon=True)
 
 if not keyboard:
   agent_th.start()

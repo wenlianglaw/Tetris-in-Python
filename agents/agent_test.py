@@ -16,7 +16,7 @@ class AgentTest(unittest.TestCase):
   def test_GetAllPossiblePositions(self):
     t = shape.T()
     t.y = 0
-    rst = self.agent.GetAllPossiblePositions(t, self.game.GetState())
+    rst = agent.GetAllPossiblePositions(t, self.game)
     print(rst)
 
     self.assertEqual(len(rst), 11)
@@ -64,7 +64,7 @@ class AgentTest(unittest.TestCase):
       [1, 1, 0, 1, 1],  # 7
     ])
 
-    rst = self.agent.GetAllPossiblePositions(t, self.game.GetState())
+    rst = agent.GetAllPossiblePositions(t, self.game)
 
 #   (4, 1)
 #   state:2
@@ -117,7 +117,7 @@ class AgentTest(unittest.TestCase):
     )
 
 
-    rst = self.agent.GetAllPossiblePositions(t, self.game.GetState())
+    rst = agent.GetAllPossiblePositions(t, self.game)
     rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])
     self.assertTrue((19, 1, 2) in rst_set)
 
