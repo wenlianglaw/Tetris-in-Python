@@ -5,7 +5,7 @@
 # displaying the game status including the current board, held piece and
 # piece list.
 #
-# DAS and ARR can be set in this file.
+# DAS and ARR can be set in the settings file.
 #
 # Hard drop and rotation actions can not be sent continuously:  They should be
 # sent one by one.
@@ -36,9 +36,6 @@ COLOR_S = np.array((207, 218, 49)) / 255
 COLOR_Z = np.array((191, 80, 75)) / 255
 
 BLOCK_SIZE = 15
-
-DAS = 20  # ms
-ARR = 80  # ms
 
 def GetColorFromPiece(piece):
   if isinstance(piece, shape.I):
@@ -87,10 +84,10 @@ class TetrisUI:
       "DOWN": False,
       "SWAP": False,
     })
-    self.das = DAS
+    self.das = settings.DAS
     self.last_input = time.time()
     self.first_input = True
-    self.arr = ARR
+    self.arr = settings.ARR
     self._rotation_active = True  # No DAS for rotation.  Controlled by this variable.
     self._hard_drop_active = True  # No DAS for hard_drop.  Controlled by this variable.
 

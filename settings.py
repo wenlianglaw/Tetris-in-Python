@@ -1,5 +1,9 @@
 from OpenGL.GLUT import *
 
+# Sensitivity
+DAS = 20  # ms
+ARR = 80  # ms
+
 # Control keys
 SWAP = GLUT_KEY_UP
 LEFT = GLUT_KEY_LEFT
