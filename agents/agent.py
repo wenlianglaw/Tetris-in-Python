@@ -13,11 +13,10 @@ import numpy as np
 
 import actions
 import game_client
-import random
 import shape
 
-
 from typing import Callable, List, Tuple
+
 
 class Env:
   def __init__(self, get_state: Callable[[], game_client.GameState],
@@ -37,9 +36,7 @@ class Agent:
   @abc.abstractmethod
   def MakeDecision(self) -> List[actions.Action]:
     """Returns a list of actions based on the current game state."""
-    state = self.env.get_state()
-    possible_actions = self.GetAllPossiblePositions(state.current_piece, state)
-    return random.choice(possible_actions)[1]
+    raise NotImplementedError()
 
   def RunGame(self):
     while True:
@@ -60,6 +57,7 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
   This is intended to run fast.
   :returns (piece inish state, [actions to this state])
   """
+
   def GetHardDroppedPiece(piece):
     hard_drop_piece = piece.copy()
     while game.CheckValidity(hard_drop_piece, (1,0)):
@@ -75,10 +73,9 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
     ret.append((GetHardDroppedPiece(piece), path + [actions.Action(dir=actions.HARD_DROP)]))
 
     for y in [-1, 1]:
+      path = []
       if init_path is not None:
         path = init_path.copy()
-      else:
-        path = []
       moved_piece = piece.copy()
       while game.CheckValidity(moved_piece, (0, y)):
         moved_piece.y += y
