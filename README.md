@@ -32,16 +32,25 @@ pip install numpy scipy readerwriterlock
 Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
 - https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl
 
-## Run
+## How to play
 ```py
 python ./main.py
 ```
 
 To play with keyboard.  Set `keyboard=True` in main.py
 
-To play with an idiot AI, set `keyboard = False` and pass the agent with
+To play in AI mode, set `keyboard = False` and pass the agent with
 the AI you want.
 
+```
+Arrow key: Move left, right or soft drop
+Arrow up: Swap the current piece and held piece
+Space: Hard drop
+r: 90 Rotation
+e: 270 Rotation
+w: 180 Rotation
+g: Restart
+```
 ## Tetris default settings
 
 Map size: 10 * 20
