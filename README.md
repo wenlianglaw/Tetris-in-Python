@@ -21,6 +21,16 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock
 ```
 
+In some Mac OS OpenGl, you might need to manually update pyopengl config ctypesloader.py, change
+`fullName=...`
+to
+`fullName = "/System/Library/Frameworks/{}.framework/{}".format(name, name)`
+
+ctypesloader.py file is located in the python package folder, for example,
+```bash
+vim /Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/OpenGL/platform/ctypesloader.py
+```
+
 ### For Windows
 
 ```
