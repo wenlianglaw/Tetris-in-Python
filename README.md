@@ -21,7 +21,11 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock
 ```
 
-In some Mac OS OpenGl, you might need to manually update pyopengl config ctypesloader.py, change
+#### If you counter OpenGL issue in MacOS Big Sur
+
+Probably https://stackoverflow.com/questions/63475461/unable-to-import-opengl-gl-in-python-on-macos
+
+You might need to manually update pyopengl config ctypesloader.py, change
 `fullName=...`
 to
 `fullName = "/System/Library/Frameworks/{}.framework/{}".format(name, name)`
