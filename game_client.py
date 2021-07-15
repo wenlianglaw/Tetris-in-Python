@@ -31,6 +31,8 @@ import time
 from threading import Lock
 from typing import Tuple, List
 
+from readerwriterlock import rwlock
+
 import numpy as np
 
 import actions
@@ -142,6 +144,8 @@ class GameClient(GameState):
     self._enable_lock_time = False
 
     self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)], dtype=np.int)
+    # Lock for the game map
+    self.rw_lock_map = rwlock.RWLockWrite()
     # Lock for current_piece
     self.mutex_current_piece = Lock()
     self.last_put_piece = None
@@ -459,10 +463,14 @@ class GameClient(GameState):
         elimated_lines.append(row + self.last_put_piece.x)
         elimated_cnt += 1
 
-
-    self.map = np.vstack((np.zeros((elimated_cnt, self.width),
-                                               dtype=np.int),
-                         np.delete(self.map, elimated_lines, axis=0)))
+    wlock_map = self.rw_lock_map.gen_wlock()
+    try:
+      wlock_map.acquire()
+      self.map = np.vstack((np.zeros((elimated_cnt, self.width),
+                                     dtype=np.int),
+                            np.delete(self.map, elimated_lines, axis=0)))
+    finally:
+      wlock_map.release()
 
     self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
@@ -654,12 +662,17 @@ class GameClient(GameState):
     :param offset: The inital offset to the piece
     :return: True if the current state can fit into the map.  False otherwise.
     """
-    for (i,j) in piece.GetShape():
-      pos_i = i + piece.x + offset[0]
-      pos_j = j + piece.y + offset[1]
-      if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
-          self.map[pos_i][pos_j] != 0):
-        return False
+    rlock_map = self.rw_lock_map.gen_rlock()
+    try:
+      rlock_map.acquire()
+      for (i,j) in piece.GetShape():
+        pos_i = i + piece.x + offset[0]
+        pos_j = j + piece.y + offset[1]
+        if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
+            self.map[pos_i][pos_j] != 0):
+          return False
+    finally:
+      rlock_map.release()
     return True
 
   def _GetNextBag(self):
