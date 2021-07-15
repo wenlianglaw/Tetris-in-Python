@@ -51,20 +51,19 @@ import game_client
 import tetirs_ui
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = False
+keyboard = True
 
 # Disable this to run the AI in background mode
 enable_ui = True
 
 # Backend game
 game = game_client.GameClient(width=10, height=20)
+game_th = threading.Thread(group=None, target=game.Run, daemon=True)
+
 print(game.height, game.width)
 
 # Initializes the front end UI with backend game.
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
-ui_th = threading.Thread(group=None, target=ui.Run, daemon=True)
-if enable_ui:
-  ui_th.start()
 
 # Initializes the AI environment
 # get_state:  Callable[[], game_client.GameState]
@@ -92,10 +91,13 @@ if not keyboard:
 
 # Runs the game
 if keyboard:
-  game.Run()
+  game_th.start()
+
+if enable_ui:
+  ui.Run()
 
 # Exiting...
 agent_th.join()
 
-if enable_ui:
-  ui_th.join()
+if keyboard:
+  game_th.join()
