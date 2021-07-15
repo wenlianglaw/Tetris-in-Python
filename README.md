@@ -42,7 +42,6 @@ To play with keyboard.  Set `keyboard=True` in main.py
 To play in AI mode, set `keyboard = False` and pass the agent with
 the AI you want.
 
-```
 Arrow key: Move left, right or soft drop
 Arrow up: Swap the current piece and held piece
 Space: Hard drop
@@ -50,7 +49,9 @@ r: 90 Rotation
 e: 270 Rotation
 w: 180 Rotation
 g: Restart
-```
+
+These settings are defined in the `settings.py`
+
 ## Tetris default settings
 
 Map size: 10 * 20
