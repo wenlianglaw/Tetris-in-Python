@@ -8,7 +8,7 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 
 ![demo3.gif](https://github.com/wenlianglaw/Tetris-in-Python/blob/master/gifs/near_perfect_bot.gif)
 
-## Requirements
+## Requirements & Install
 
 - numpy
 - scipy
@@ -16,19 +16,57 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - pyopengl-accelerate
 - readerwriterlock
 
-Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
+### For Mac
+```
+pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock
+```
 
+#### If you counter OpenGL issue in MacOS Big Sur
+
+Probably https://stackoverflow.com/questions/63475461/unable-to-import-opengl-gl-in-python-on-macos
+
+You might need to manually update pyopengl config ctypesloader.py, change
+`fullName=...`
+to
+`fullName = "/System/Library/Frameworks/{}.framework/{}".format(name, name)`
+
+ctypesloader.py file is located in the python package folder, for example,
+```bash
+vim /Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/OpenGL/platform/ctypesloader.py
+```
+
+### For Windows
+
+```
+pip install numpy scipy readerwriterlock
+```
+
+*Use this link to install PyOpenGL*
+
+Suggested pyopengl and pyopengl-accelerate download location since it contains the runtime, otherwise you might run into .dll missing errors
 - https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl
 
-## Run
+## How to play
 ```py
 python ./main.py
 ```
 
 To play with keyboard.  Set `keyboard=True` in main.py
 
-To play with an idiot AI, set `keyboard = False` and pass the agent with
+To play in AI mode, set `keyboard = False` and pass the agent with
 the AI you want.
+
+```
+Arrow key: Move left, right or soft drop
+Arrow up: Swap the current piece and held piece
+Space: Hard drop
+r: 90 Rotation
+e: 270 Rotation
+w: 180 Rotation
+g: Restart
+```
+
+These settings are defined in the `settings.py`
 
 ## Tetris default settings
 
