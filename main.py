@@ -51,7 +51,7 @@ import game_client
 import tetirs_ui
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = False
+keyboard = True
 
 # Disable this to run the AI in background mode
 enable_ui = True

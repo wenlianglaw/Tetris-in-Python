@@ -62,8 +62,8 @@ _SHAPES_Z = np.array([
 class Shape:
   def __init__(self, start_x: int = 1, start_y: int = 3):
     self.shape = None
-    self.start_x = start_x
-    self.start_y = start_y
+    self._start_x = start_x
+    self._start_y = start_y
     self.x = start_x
     self.y = start_y
     # 0: spawn state
@@ -91,8 +91,8 @@ class Shape:
 
   @abc.abstractmethod
   def Init(self):
-    self.x = self.start_x
-    self.y = self.start_y
+    self.x = self._start_x
+    self.y = self._start_y
     self.state = 0
 
   def GetShape(self):

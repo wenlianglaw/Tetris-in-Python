@@ -17,15 +17,13 @@ import shape
 
 from typing import Callable, List, Tuple
 
-
 class Env:
   def __init__(self, get_state: Callable[[], game_client.GameState],
-               take_actions: Callable[[List[actions.Action]],None],
+               take_actions: Callable[[List[actions.Action]], None],
                restart: Callable[[], None]):
     self.get_state = get_state
     self.take_actions = take_actions
     self.restart = restart
-
 
 class Agent:
   def __init__(self, env: Env, decision_interval: float = 0.1):
@@ -46,9 +44,14 @@ class Agent:
       print(f"{(time.time() - start) * 1000} ms")
       time.sleep(self.decision_interval)
 
-
-def _AtBottom(piece: shape.Shape, game:game_client.GameClient):
+def _AtBottom(piece: shape.Shape, game: game_client.GameClient):
   return not game.CheckValidity(piece, offset=(1, 0))
+
+def _GetHardDroppedPiece(game, piece) -> shape.Shape:
+  hard_drop_piece = piece.copy()
+  while game.CheckValidity(hard_drop_piece, (1, 0)):
+    hard_drop_piece.x += 1
+  return hard_drop_piece
 
 def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameClient) -> (
     List[Tuple[shape.Shape, List[actions.Action]]]):
@@ -58,66 +61,61 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game: game_client.GameC
   :returns (piece inish state, [actions to this state])
   """
 
-  def GetHardDroppedPiece(piece):
-    hard_drop_piece = piece.copy()
-    while game.CheckValidity(hard_drop_piece, (1,0)):
-      hard_drop_piece.x += 1
-    return hard_drop_piece
-
-  def SearchForCurrentState(piece, game, init_path=None):
-    path = []
-
-    if init_path is not None:
-      path = init_path.copy()
-
-    ret.append((GetHardDroppedPiece(piece), path + [actions.Action(dir=actions.HARD_DROP)]))
-
-    for y in [-1, 1]:
-      path = []
-      if init_path is not None:
-        path = init_path.copy()
-      moved_piece = piece.copy()
-      while game.CheckValidity(moved_piece, (0, y)):
-        moved_piece.y += y
-        if y == -1:
-          path.append(actions.Action(dir=actions.LEFT))
-        else:
-          path.append(actions.Action(dir=actions.RIGHT))
-        ret.append((GetHardDroppedPiece(moved_piece),
-                    path.copy() + [actions.Action(dir=actions.HARD_DROP)]))
-
-
+  is_visited = set()
   ret = []
 
+  is_t_shape = isinstance(piece, shape.T)
+
+  def _AppendToRet(ele):
+    if ele[0] in is_visited:
+      return
+    is_visited.add(ele[0])
+    ret.append(ele)
+
+  def _ContinueRotate(piece, game, cur_path):
+    piece_cpy = piece.copy()
+    for i in range(1, 4):
+      game.SpawnPiece(piece_cpy)
+      if game.Rotate(i) and _AtBottom(game.current_piece, game):
+        _AppendToRet((game.current_piece, cur_path + [actions.Action(rotation=i)]))
+    game.SpawnPiece(piece_cpy)
+
+  def _DropAndRototate(piece, game, init_path):
+    path = init_path
+    path.append([actions.Action(dir=actions.HARD_DROP)])
+    hard_dropped = _GetHardDroppedPiece(game, piece)
+    _AppendToRet((hard_dropped, path))
+    for rotation in range(4):
+      dropped = hard_dropped.copy()
+      game.SpawnPiece(dropped)
+      # If rotated and cannot move down anymore, then add to rst.
+      if game.Rotate(rotation) and _AtBottom(game.current_piece, game):
+        cur_path = path + [actions.Action(rotation=rotation)]
+        _AppendToRet((game.current_piece, cur_path))
+        if is_t_shape:
+          _ContinueRotate(game.current_piece, game, cur_path)
+
   if game.can_swap:
-    ret.append((piece, [actions.Action(swap=True)]))
+    _AppendToRet((piece, [actions.Action(swap=True)]))
 
+  # Rotate, slide, drop and then rotate again
   for rotate in range(4):
-    can_break = False
-    # For shape I, S and Z, we don't need to rotate it 180 and 270.
-    for instance in [shape.I, shape.S, shape.Z]:
-      if isinstance(piece, instance) and rotate > 1:
-        can_break = True
+    game.SpawnPiece(piece)
+    if rotate != 0 and not game.Rotate(rotate):
+      continue
 
-    # For shape O, we don't need to rotate at all.
-    if isinstance(piece, shape.O) and rotate > 0:
-      can_break = True
-
-    if can_break:
-      break
-
-    rotated_piece = piece.copy()
-
-    rotated_piece.Rotate(rotate)
-    if rotate == 0:
-      SearchForCurrentState(rotated_piece.copy(), game)
-    else:
-      SearchForCurrentState(rotated_piece.copy(), game, [actions.Action(rotation=rotate)])
-
+    _DropAndRototate(game.current_piece, game, [])
+    for y in [-1, 1]:
+      path = []
+      moved_piece = game.current_piece.copy()
+      while game.CheckValidity(moved_piece, (0, y)):
+        moved_piece.y += y
+        path.append(actions.Action(dir=actions.LEFT if y == -1 else actions.RIGHT))
+        _DropAndRototate(moved_piece, game, path)
   return ret
 
-def GetAllPossiblePositions(piece:shape.Shape,
-                            game_:game_client.GameClient) -> (
+def GetAllPossiblePositions(piece: shape.Shape,
+                            game_: game_client.GameClient) -> (
     List[Tuple[shape.Shape, List[actions.Action]]]):
   """Gets all possible positions of a piece in the game
   Note still some positions which requires soft-drop to mid screen and then rotate are
@@ -150,11 +148,11 @@ def GetAllPossiblePositions(piece:shape.Shape,
     visit[cur.x, cur.y, cur.state] = True
 
     if _AtBottom(cur, game):
-      ret.append((cur.copy(), path  + [actions.Action(dir=actions.HARD_DROP)]))
+      ret.append((cur.copy(), path + [actions.Action(dir=actions.HARD_DROP)]))
 
     # Exapands Q
     for (x, y) in [(1, 0), (0, 1), (0, -1)]:
-      if not visit[cur.x + x, cur.y+y, cur.state]:
+      if not visit[cur.x + x, cur.y + y, cur.state]:
         if game.CheckValidity(cur, (x, y)):
           piece_to_expand = cur.copy()
           piece_to_expand.x += x
@@ -169,7 +167,7 @@ def GetAllPossiblePositions(piece:shape.Shape,
             action.direction = actions.LEFT
           if not visit[piece_to_expand.x, piece_to_expand.y,
                        piece_to_expand.state]:
-            q.put((piece_to_expand, path+[action]))
+            q.put((piece_to_expand, path + [action]))
 
       if _AtBottom(cur, game):
         for rotate in [1, 2, 3]:
@@ -180,4 +178,3 @@ def GetAllPossiblePositions(piece:shape.Shape,
               q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
 
   return ret
-

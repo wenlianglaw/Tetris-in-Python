@@ -21,39 +21,38 @@ class AgentTest(unittest.TestCase):
 
     self.assertEqual(len(rst), 11)
 
-#    (6, 0)
-#    state: 0
-#    0 1 0
-#    1 1 1
-#    0 0 0
-#
-#    [0 0 0 0]
-#    [0 0 0 0]
-#    [0 0 0 0]
-#    [0 0 0 0]
-#    [0 0 0 0]
-#    [0 0 0 0]
-#    [0 6 0 0]
-#    [6 6 6 0]
+    #    (6, 0)
+    #    state: 0
+    #    0 1 0
+    #    1 1 1
+    #    0 0 0
+    #
+    #    [0 0 0 0]
+    #    [0 0 0 0]
+    #    [0 0 0 0]
+    #    [0 0 0 0]
+    #    [0 0 0 0]
+    #    [0 0 0 0]
+    #    [0 6 0 0]
+    #    [6 6 6 0]
     exp = [(6, 0, 0), (6, 1, 0),
            (5, 0, 2), (5, 1, 2),
            (5, -1, 1), (5, 0, 1), (5, 1, 1),
            (5, 0, 3), (5, 1, 3), (5, 2, 3),
            # swap
-           (1,0,0)]
+           (1, 0, 0)]
 
     for (p, action_list) in rst:
       self.assertTrue((p.x, p.y, p.state) in exp)
 
-
   def test_GetAllPossiblePositions_BTCanon(self):
-    t =shape.T()
+    t = shape.T()
     (t.x, t.y) = (0, -1)
     t.Rotate90()
 
     self.game.width = 5
     self.game.map = np.array([
-      #0  1  2  3  4
+      # 0  1  2  3  4
       [0, 0, 1, 1, 1],  # 0
       [0, 0, 1, 1, 1],  # 1
       [0, 0, 0, 1, 1],  # 2
@@ -66,22 +65,22 @@ class AgentTest(unittest.TestCase):
 
     rst = agent.GetAllPossiblePositions(t, self.game)
 
-#   (4, 1)
-#   state:2
-#   0 0 0
-#   1 1 1
-#   0 1 0
-#   [0 0 1 1 1]
-#   [0 0 1 1 1]
-#   [0 0 0 1 1]
-#   [1 1 0 1 1]
-#   [1 0 0 1 1]
-#   [1 6 6 6 1]
-#   [1 1 6 1 1]
-#   [1 1 0 1 1]
+    #   (4, 1)
+    #   state:2
+    #   0 0 0
+    #   1 1 1
+    #   0 1 0
+    #   [0 0 1 1 1]
+    #   [0 0 1 1 1]
+    #   [0 0 0 1 1]
+    #   [1 1 0 1 1]
+    #   [1 0 0 1 1]
+    #   [1 6 6 6 1]
+    #   [1 1 6 1 1]
+    #   [1 1 0 1 1]
 
     rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])
-    self.assertTrue((4,1,2) in rst_set)
+    self.assertTrue((4, 1, 2) in rst_set)
 
   def test_GetAllPossiblePositions_BTCanon2(self):
     t = shape.T()
@@ -90,7 +89,7 @@ class AgentTest(unittest.TestCase):
     self.game.piece_list = [shape.T()] + self.game.piece_list
 
     self.game.map = np.array(
-      [# 0  1  2  3  4  5  6  7  8  9
+      [  # 0  1  2  3  4  5  6  7  8  9
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 0
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 1
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 2
@@ -116,10 +115,37 @@ class AgentTest(unittest.TestCase):
         [1, 1, 0, 1, 1, 1, 1, 1, 1, 1], ]
     )
 
-
     rst = agent.GetAllPossiblePositions(t, self.game)
     rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])
-    self.assertTrue((19, 1, 2) in rst_set)
+    self.assertIn((19, 1, 2), rst_set)
+
+  def test_GetAllPossiblePositions_Quick(self):
+    t = shape.T(start_x=0, start_y=0)
+    self.game = game_client.GameClient()
+    self.game.SpawnPiece(t)
+
+    self.game.width = 5
+    self.game.height = 6
+    self.game.map = np.array(
+      [# 0  1  2  3  4
+        [0, 0, 0, 0, 0, ],  # 0
+        [0, 0, 0, 0, 0, ],  # 1
+        [0, 0, 0, 0, 0, ],  # 2
+        [2, 2, 0, 0, 2, ],  # 3
+        [2, 0, 0, 0, 2, ],  # 4
+        [2, 2, 0, 2, 2, ],  # 5
+      ]
+    )
+
+    rst = agent.GetPossiblePositionsQuickVersion(t, self.game)
+
+    # The quick solution is suppose to at least get 4 T-spin rotations.
+    self.assertGreater(len(rst), 4)
+
+    # And the T-Spin double should at least be in the ans.
+    rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])
+    self.assertIn((3, 1, 2), rst_set)
+
 
 if __name__ == '__main__':
   unittest.main()

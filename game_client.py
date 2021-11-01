@@ -114,7 +114,6 @@ piece_dropped: {self.piece_dropped}
 level: {self.level}
     """
 
-
 class GameClient(GameState):
   def __init__(self, height: int = DEFAULT_LENGTH,
                width: int = DEFAULT_WIDTH,
@@ -459,10 +458,9 @@ class GameClient(GameState):
         elimated_lines.append(row + self.last_put_piece.x)
         elimated_cnt += 1
 
-
     self.map = np.vstack((np.zeros((elimated_cnt, self.width),
-                                               dtype=np.int),
-                         np.delete(self.map, elimated_lines, axis=0)))
+                                   dtype=np.int),
+                          np.delete(self.map, elimated_lines, axis=0)))
 
     self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
@@ -536,11 +534,13 @@ class GameClient(GameState):
       print(i)
     print()
 
-  def SpawnPiece(self, piece: shape.Shape = None):
+  def SpawnPiece(self, piece: shape.Shape = None) -> bool:
     if not piece:
       self._TakePieceFromList()
     else:
       self.current_piece = piece.copy()
+
+    return self.CheckValidity(self.current_piece)
 
   def _FindFittedPiece(self, piece: shape.Shape = None, num_90rotations: int = 0):
     """Finds a location that fits this piece with n 90rotations.
@@ -649,12 +649,12 @@ class GameClient(GameState):
     return fitted_piece is not None
 
   def CheckValidity(self, piece: shape.Shape, offset: Tuple[int, int] = (0, 0)):
-    """Checks if the piece with n rotations can be put in the map
+    """Checks if the piece with offset can be put in the map
     :param piece: The piece to be put.
     :param offset: The inital offset to the piece
     :return: True if the current state can fit into the map.  False otherwise.
     """
-    for (i,j) in piece.GetShape():
+    for (i, j) in piece.GetShape():
       pos_i = i + piece.x + offset[0]
       pos_j = j + piece.y + offset[1]
       if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
