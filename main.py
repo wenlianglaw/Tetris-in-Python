@@ -51,13 +51,16 @@ import game_client
 import tetirs_ui
 
 # Other I/O settings can be configured in the tetris_ui.py file
-keyboard = True
+keyboard = False
 
 # Disable this to run the AI in background mode
 enable_ui = True
 
 # Backend game
 game = game_client.GameClient(width=10, height=20)
+import shape
+game.SpawnPiece(shape.T())
+game.piece_list = [shape.O()] + game.piece_list
 game_th = threading.Thread(group=None, target=game.Run, daemon=True)
 
 print(game.height, game.width)
@@ -77,9 +80,8 @@ env = agent.Env(get_state=game.GetState,
                 restart=game.Restart)
 
 random_agent = agent.Agent(env)
-
 mcts_agent = mcts_agent.MCTSAgent(env, thread_num=1, iterations_per_move=200)
-near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env, decision_interval=0.01)
+near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env, decision_interval=0.001)
 
 # Agent being used
 agent = near_perfect_bot
@@ -87,7 +89,6 @@ agent_th = threading.Thread(group=None, target=agent.RunGame, daemon=True)
 
 if not keyboard:
   agent_th.start()
-
 
 # Runs the game
 if keyboard:

@@ -249,7 +249,7 @@ class GameClient(GameState):
         self.soft_drop = False
       else:
         if self.CheckValidity(self.current_piece, offset=(1, 0)):
-          self.Move(actions.Action(down=True, source_user=False))
+          self.Move(actions.Action(down=True, source_user_or_ai=False))
         else:
           if (not self._enable_lock_time or
               self.accumulate_lock_time >= self.current_maximum_lock_time):
@@ -272,11 +272,11 @@ class GameClient(GameState):
         break
       self.action_list.put(act)
 
-  def ProcessActions(self, action: List[actions.Action]):
-    for a in action:
-      self.ProcessAction(a)
+  def ProcessActions(self, actions: List[actions.Action], post_processing=True):
+    for a in actions:
+      self.ProcessAction(a, post_processing=post_processing)
 
-  def ProcessAction(self, action: actions.Action):
+  def ProcessAction(self, action: actions.Action, post_processing=True):
     if self.is_gameover:
       return
     # print(f"Processed action: {action.direction}, {action.rotation}, {action.swap}")
@@ -285,7 +285,7 @@ class GameClient(GameState):
     if action.swap:
       self.Swap()
     self.Rotate(action.rotation)
-    self.Move(action)
+    self.Move(action, post_processing=post_processing)
 
   def _ProcessActionsThread(self):
     while True:
@@ -308,9 +308,11 @@ class GameClient(GameState):
     self.level += inc
     self.SetLevel(self.level)
 
-  def Move(self, action: actions.Action) -> bool:
+  def Move(self, action: actions.Action, post_processing=True) -> bool:
     """Moves the current piece.
     :param direction: Direction to move
+    :param post_processing: if True, put the piece to map and
+           apply line eliminate. Otherwise just update the current_piece's states.
     :return True if moved; False otherwise
     """
     if (action.direction == actions.NONE and
@@ -345,7 +347,7 @@ class GameClient(GameState):
           moved = True
       finally:
         self.mutex_current_piece.release()
-    if action.direction == actions.HARD_DROP:
+    if action.direction == actions.HARD_DROP or action.direction == actions.SOFT_DROP :
       try:
         self.mutex_current_piece.acquire()
         while self.CheckValidity(self.current_piece, (1, 0)):
@@ -353,7 +355,8 @@ class GameClient(GameState):
           moved = True
       finally:
         self.mutex_current_piece.release()
-        self.PutPiece()
+        if post_processing and action.direction == actions.HARD_DROP :
+          self.PutPiece()
 
     if moved:
       self.last_action = action
@@ -559,50 +562,75 @@ class GameClient(GameState):
           return True
       return False
 
-    offset_map_jlstz = np.array([
+#
+#      WALLKICK_NORMAL_180[][][] =
+#      {
+#        {{1, 0}, {2, 0}, {1, 1}, {2, 1}, {-1, 0}, {-2, 0}, {-1, 1}, {-2, 1}, {0, -1}, {3, 0}, {-3, 0}}, // 0 >> 2─┐
+#      {{0, 1}, {0, 2}, {-1, 1}, {-1, 2}, {0, -1}, {0, -2}, {-1, -1}, {-1, -2}, {1, 0}, {0, 3}, {0, -3}}, // 1 >> 3─┼┐
+#      {{-1, 0}, {-2, 0}, {-1, -1}, {-2, -1}, {1, 0}, {2, 0}, {1, -1}, {2, -1}, {0, 1}, {-3, 0}, {3, 0}}, // 2 >> 0─┘│
+#      {{0, 1}, {0, 2}, {1, 1}, {1, 2}, {0, -1}, {0, -2}, {1, -1}, {1, -2}, {-1, 0}, {0, 3}, {0, -3}}, // 3 >> 1──┘
+#      };
+#      private
+#      static
+#      final
+#      int
+#      WALLKICK_I_180[][][] =
+#      {
+#        {{-1, 0}, {-2, 0}, {1, 0}, {2, 0}, {0, 1}}, // 0 >> 2─┐
+#      {{0, 1}, {0, 2}, {0, -1}, {0, -2}, {-1, 0}}, // 1 >> 3─┼┐
+#      {{1, 0}, {2, 0}, {-1, 0}, {-2, 0}, {0, -1}}, // 2 >> 0─┘│
+#      {{0, 1}, {0, 2}, {0, -1}, {0, -2}, {1, 0}}, // 3 >> 1──┘
+#      };
+#
+
+
+    # The 180 rotation wall kick table is copied from
+    # https://tetris.fandom.com/wiki/SRS#180.C2.B0_rotation
+    # which is origined from
+    # https://github.com/JoshuaWebb/nullpomino/blob/master/src/mu/nu/nullpo/game/subsystem/wallkick/StandardWallkick.java
+    offset_map_jlstz = [
       # state 0
-      [[(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)],  # 0>>1
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 0>>2, 180 rotation
-       [(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)]],  # 0>>3
+      ([(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)],  # 0>>1
+       [(1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],  # 0>>2, 180 rotation
+       [(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)]),  # 0>>3
 
       # state 1
-      [[(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)],  # 1>>2
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # l>>3, 180 rotation
-       [(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)]],  # 1>>0
+      ([(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)],  # 1>>2
+       [(0, 1), (0, 2), (-1, 1), (-1, 2), (0, -1), (0, -2), (-1, -1), (-1, -2), (1, 0), (0, 3), (0, -3)],  # l>>3, 180 rotation
+       [(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)]),  # 1>>0
 
       # state 2
-      [[(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)],  # 2>>3
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 2>>0,
-       [(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)]],  # 2>>1
+      ([(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)],  # 2>>3
+       [(-1, 0), (-2, 0), (-1, -1), (-2, -1), (1, 0), (2, 0), (1, -1), (2, -1), (0, 1), (-3, 0), (3, 0)],  # 2>>0,
+       [(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)]),  # 2>>1
 
       # state 3
-      [[(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)],  # 3>>0
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 3>>1, 180 rotation
-       [(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)]],  # 3>>2
-    ])
+      ([(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)],  # 3>>0
+       [(0, 1), (0, 2), (1, 1), (1, 2), (0, -1), (0, -2), (1, -1), (1, -2), (-1, 0), (0, 3), (0, -3)],  # 3>>1, 180 rotation
+       [(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)]),  # 3>>2
+    ]
 
-    offset_map_i = np.array([
+    offset_map_i = [
       # state 0
       [[(0, 0), (0, -2), (0, 1), (1, -2), (-2, 1), ],  # 0>>1
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 0>>2, 180 rotation
+       [(-1, 0), (-2, 0), (1, 0), (2, 0), (0, 1)],  # 0>>2, 180 rotation
        [(0, 0), (0, -1), (0, 2), (-2, -1), (1, 2)]],  # 0>>3
 
       # state 1
       [[(0, 0), (0, -1), (0, 2), (-2, -1), (1, 2)],  # 1>>2
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 1>>3, 180 rotation,
+       [(0, 1), (0, 2), (0, -1), (0, -2), (-1, 0)],  # 1>>3, 180 rotation,
        [(0, 0), (0, 2), (0, -1), (-1, 2), (2, -1)]],  # 1>>0
 
       # state 2
       [[(0, 0), (0, 2), (0, -1), (-1, 2), (2, -1)],  # 2>>3
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 2>>0, 180 rotation
+       [(1, 0), (2, 0), (-1, 0), (-2, 0), (0, -1)],  # 2>>0, 180 rotation
        [(0, 0), (0, 1), (0, -2), (2, 1), (-1, -2)]],  # 2>>1
 
       # state 3
       [[(0, 0), (0, 1), (0, -2), (2, 1), (-1, -2)],  # 3>>0
-       [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)],  # 3>>1, 180 rotation
+       [(0, 1), (0, 2), (0, -1), (0, -2), (1, 0)],  # 3>>1, 180 rotation
        [(0, 0), (0, -2), (0, 1), (1, -2), (2, 1)]],  # 3>>2
     ]
-    )
 
     state = piece.state
     num_90rotations %= 4
@@ -634,6 +662,10 @@ class GameClient(GameState):
     return None
 
   def Rotate(self, n: int) -> bool:
+    """Rotates the current piece.
+    :param n:  rotations, in range [0,4)
+    :return: True if the current piece can be rotated.  False otherwise.
+    """
     n %= 4
     if n == 0:
       return False

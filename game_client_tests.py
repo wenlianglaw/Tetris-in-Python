@@ -126,11 +126,42 @@ class TestGameClient(unittest.TestCase):
     self.assertFalse(self.game.PutPiece(i))
 
   def test_RotationOK(self):
-    self.game = game_client.GameClient(width=4, height=5)
+    self.game = game_client.GameClient(width=4, height=6, height_buffer=0)
+    self.game.map = np.array(
+      [# 0  1  2  3
+        [0, 0, 0, 0, ],  # 0
+        [0, 0, 0, 0, ],  # 1
+        [0, 0, 0, 0, ],  # 2
+        [0, 0, 0, 0, ],  # 3
+        [0, 0, 0, 0, ],  # 4
+        [0, 0, 0, 0, ],  # 5
+      ]
+    )
+
     t = shape.T()
-    (t.x, t.y) = (6,1)
+    (t.x, t.y) = (4,0)
+    # Rotate 1
     self.game.SpawnPiece(t)
     self.assertTrue(self.game.Rotate(1))
+    expected = shape.T(3, -1)
+    expected.state = 1
+    self.assertEqual(self.game.current_piece, expected)
+
+    # Rotate 2
+    self.game.SpawnPiece(t)
+    self.assertTrue(self.game.Rotate(2))
+    expected = shape.T(3, 0)
+    expected.state = 2
+    self.assertEqual(self.game.current_piece, expected)
+
+    # Rotate 3
+    self.game.SpawnPiece(t)
+    self.assertTrue(self.game.Rotate(3))
+    expected = shape.T(3, 1)
+    expected.state = 3
+    print(self.game.current_piece)
+    print(expected)
+    self.assertEqual(self.game.current_piece, expected)
 
   def test_RotationFail(self):
     self.game = game_client.GameClient(width=3, height=4)
