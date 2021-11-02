@@ -1,9 +1,7 @@
 # Base class for all the AI agents
 #
 # Initialize it with an env, which should provide
-#  - get_state function: Gets a game state
-#  - take_actions function: Lets the game take a list of actions.
-#  - restart:  Restarts a game.
+#  - game: Game itself.
 
 import time
 import queue
@@ -19,12 +17,8 @@ from functools import partial
 from typing import Callable, List, Tuple
 
 class Env:
-  def __init__(self, get_state: Callable[[], game_client.GameState],
-               take_actions: Callable[[List[actions.Action]], None],
-               restart: Callable[[], None]):
-    self.get_state = get_state
-    self.take_actions = take_actions
-    self.restart = restart
+  def __init__(self, game: game_client.GameClient):
+    self.game = game
 
 class Agent:
   def __init__(self, env: Env, decision_interval: float = 0.1):
@@ -41,7 +35,7 @@ class Agent:
     while True:
       start = time.time()
       actions = self.MakeDecision()
-      self.env.take_actions(actions)
+      self.env.game.ProcessActions(actions)
       print(f"{(time.time() - start) * 1000} ms")
       time.sleep(self.decision_interval)
 

@@ -52,7 +52,7 @@ class TheNearPerfectAgent(agent.Agent):
         return (None, None)
 
       all_possible_solutions = agent.GetPossiblePositionsQuickVersion(
-        state.current_piece, ori_game)
+        ori_game.current_piece, ori_game)
 
       best_move = ()
       best_move_score = -np.inf
@@ -70,7 +70,7 @@ class TheNearPerfectAgent(agent.Agent):
         holes = self.GetHoles(game)
 
         # Height of each col
-        col_heights = [self.GetColHeight(game.map[:, i]) for i in range(state.width)]
+        col_heights = [self.GetColHeight(game.map[:, i]) for i in range(ori_game.width)]
 
         # aggregate_height
         aggregate_height = np.sum(col_heights)
@@ -93,8 +93,7 @@ class TheNearPerfectAgent(agent.Agent):
           best_move_score = score
       return (best_move_score, best_move)
 
-    state = self.env.get_state()
-    ori_game = game_client.CreateGameFromState(state)
+    ori_game = self.env.game.copy()
     (best_move_score, best_move) = FindBestMove(ori_game)
     print("line eliminated:", ori_game.accumulated_lines_eliminated)
     if best_move:

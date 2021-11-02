@@ -167,11 +167,10 @@ class MCTSAgent(agent.Agent):
     self.iterations_per_move = iterations_per_move
 
   def MakeDecision(self) -> List[actions.Action]:
-    state = self.env.get_state()
-    if state.is_gameover:
+    game = self.env.game.copy()
+    if game.CheckGameOver():
       return []
 
-    game = game_client.CreateGameFromState(state)
     tree = MCTSNode(game, game.piece_dropped)
     mcts = mcts_algorithm.MCTS()
 

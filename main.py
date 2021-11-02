@@ -69,15 +69,7 @@ print(game.height, game.width)
 ui = tetirs_ui.TetrisUI(game, keyboard=keyboard)
 
 # Initializes the AI environment
-# get_state:  Callable[[], game_client.GameState]
-#           Observes the game state
-# take_actions: Callable[[List[actions.Action]],None]
-#           Takes the actions
-# restart: Callable[[], None]
-#           Resets the game.
-env = agent.Env(get_state=game.GetState,
-                take_actions=game.ProcessActions,
-                restart=game.Restart)
+env = agent.Env(game=game)
 
 random_agent = agent.Agent(env)
 mcts_agent = mcts_agent.MCTSAgent(env, thread_num=1, iterations_per_move=200)
