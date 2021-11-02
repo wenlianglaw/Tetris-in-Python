@@ -58,9 +58,6 @@ enable_ui = True
 
 # Backend game
 game = game_client.GameClient(width=10, height=20)
-import shape
-game.SpawnPiece(shape.T())
-game.piece_list = [shape.O()] + game.piece_list
 game_th = threading.Thread(group=None, target=game.Run, daemon=True)
 
 print(game.height, game.width)
@@ -73,10 +70,10 @@ env = agent.Env(game=game)
 
 random_agent = agent.Agent(env)
 mcts_agent = mcts_agent.MCTSAgent(env, thread_num=1, iterations_per_move=200)
-near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env, decision_interval=0.001)
+near_perfect_bot = near_perfect_bot.TheNearPerfectAgent(env, decision_interval=0.01)
 
 # Agent being used
-agent = near_perfect_bot
+agent = mcts_agent
 agent_th = threading.Thread(group=None, target=agent.RunGame, daemon=True)
 
 if not keyboard:
