@@ -15,10 +15,12 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - pyopengl
 - pyopengl-accelerate
 - readerwriterlock
+- PIL
+- pynput (tetr.io hack)
 
 ### For Mac
 ```
-pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock
+pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock PIL pynput
 ```
 
 #### If you counter OpenGL issue in MacOS Big Sur

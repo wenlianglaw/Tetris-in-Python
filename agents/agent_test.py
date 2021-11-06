@@ -9,8 +9,7 @@ import shape
 class AgentTest(unittest.TestCase):
   def setUp(self) -> None:
     self.game = game_client.GameClient(5, 4)
-    self.env = agent.Env(self.game.GetState, self.game.ProcessActions,
-                         restart=self.game.Restart)
+    self.env = agent.Env(game=self.game)
     self.agent = agent.Agent(env=self.env)
 
   def _CheckPaths(self, rst):

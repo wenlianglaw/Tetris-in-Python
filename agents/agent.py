@@ -76,14 +76,6 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game_: game_client.Game
       then(game, init_path)
     game.SpawnPiece(piece)
 
-  def _ContinueRotate(game, cur_path):
-    piece = game.current_piece.copy()
-    for i in range(1, 4):
-      game.SpawnPiece(piece)
-      if game.Rotate(i) and _AtBottom(game.current_piece, game):
-        _AppendToRet((game.current_piece, cur_path + [actions.Action(rotation=i)]))
-    game.SpawnPiece(piece)
-
   def _DropAndRotate(game, init_path, then=None):
     """
     :param then: Callable function, if set it will be execute after the Rotation.
@@ -106,8 +98,6 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game_: game_client.Game
       if game.Rotate(rotation) and _AtBottom(game.current_piece, game):
         cur_path = path + [actions.Action(rotation=rotation)]
         _AppendToRet((game.current_piece, cur_path.copy()))
-        if is_t_shape:
-          _ContinueRotate(game, cur_path)
         if then:
           then(game, cur_path, None)
 

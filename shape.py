@@ -207,3 +207,7 @@ class Z(Shape):
   def Init(self):
     super().Init()
     self.shape = _SHAPES_Z
+
+
+def GetShapeFromId(id: int) -> Shape:
+  return [None, I(), J(), L(), O(), S(), T(), Z()][id]
