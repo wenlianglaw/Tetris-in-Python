@@ -8,8 +8,7 @@ import numpy as np
 class NearPerfectBotTest(unittest.TestCase):
   def setUp(self) -> None:
     self.game = game_client.GameClient(5, 5, height_buffer=0)
-    self.env = agent.Env(self.game.GetState, self.game.ProcessActions,
-                         restart=self.game.Restart)
+    self.env = agent.Env(self.game)
     self.agent = near_perfect_bot.TheNearPerfectAgent(env=self.env)
 
   def test_GetHoles(self):
