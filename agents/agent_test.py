@@ -160,9 +160,11 @@ class AgentTest(unittest.TestCase):
     self.game.SpawnPiece(t)
     rst = agent.GetPossiblePositionsQuickVersion(t, self.game)
 
+    for (x, p) in rst:
+      print(x)
     # Checks the final states
     # The quick solution is suppose to at least get 4 T-spin rotations.
-    self.assertEqual(len(rst), 17)
+    self.assertEqual(len(rst), 18)
 
     # And the T-Spin double should at least be in the ans.
     rst_set = set([(p.x, p.y, p.state) for (p, path) in rst])

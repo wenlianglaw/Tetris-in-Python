@@ -55,85 +55,72 @@ def GetPossiblePositionsQuickVersion(piece: shape.Shape, game_: game_client.Game
   This is intended to run fast.
   :returns (piece inish state, [actions to this state])
   """
-  game = game_.copy()
-  is_visited = set()
   ret = []
 
-  is_t_shape = isinstance(piece, shape.T)
-
-  def _AppendToRet(ele):
-    if ele[0] in is_visited:
-      return
-    is_visited.add(ele[0])
-    add = (ele[0], ele[1] + [actions.Action(dir=actions.HARD_DROP)])
-    ret.append(add)
-
-  def _ExecuteThen(then, game, init_path):
-    piece = game.current_piece.copy()
-    if _AtBottom(game.current_piece, game):
-      _AppendToRet((game.current_piece, init_path.copy()))
-    if then:
-      then(game, init_path)
-    game.SpawnPiece(piece)
-
-  def _DropAndRotate(game, init_path, then=None):
-    """
-    :param then: Callable function, if set it will be execute after the Rotation.
-    """
-    path = init_path.copy()
-    piece = game.current_piece.copy()
-    hard_dropped = piece.copy()
-
-    # Drop
-    if not _AtBottom(piece, game):
-      path.append(actions.Action(dir=actions.SOFT_DROP))
-      hard_dropped = _GetHardDroppedPiece(game, piece)
-    _AppendToRet((hard_dropped, path.copy()))
-
-    # And Rotate
-    for rotation in range(1, 4):
-      dropped = hard_dropped.copy()
-      game.SpawnPiece(dropped)
-      # If rotated and cannot move down anymore, then add to rst.
-      if game.Rotate(rotation) and _AtBottom(game.current_piece, game):
-        cur_path = path + [actions.Action(rotation=rotation)]
-        _AppendToRet((game.current_piece, cur_path.copy()))
-        if then:
-          then(game, cur_path, None)
-
-    game.SpawnPiece(piece)
-
-  def _Slide(game: game_client.GameClient,
-             init_path, then=None):
-    """ Slide and do func `then`.
-    :param then:  Callable[[piece, game, init_path], None]
-    """
-    piece = game.current_piece.copy()
-
-    _ExecuteThen(then, game, init_path)
-    for y in [-1, 1]:
-      cur_path = init_path.copy()
-      game.SpawnPiece(piece)
-      while game.CheckValidity(game.current_piece, (0, y)):
-        game.current_piece.y += y
-        cur_path.append(actions.Action(dir=actions.LEFT if y == -1 else actions.RIGHT))
-        _ExecuteThen(then, game, cur_path)
-
-    game.SpawnPiece(piece)
+  game = game_.copy()
+  game.SpawnPiece(piece)
 
   if game.can_swap:
-    _AppendToRet((piece, [actions.Action(swap=True)]))
+    action = actions.Action(swap=True)
+    ret.append((game.piece_list[0], [action]))
 
-  # Rotate -> slide -> drop -> rotate and slide
-  for rotate in range(4):
-    game.SpawnPiece(piece)
-    # If cannot rotate, continue
-    if rotate != 0 and not game.Rotate(rotate):
+  # visit[x,y,state]
+  visit = set()
+
+  # Element is (piece, [Actions])
+
+  q = queue.Queue()
+  q.put((piece.copy(), []))
+
+  shape_o_id = shape.O().id
+
+  while not q.empty():
+    (cur, path) = q.get()
+    if (cur.x, cur.y, cur.state) in visit:
       continue
-    _Slide(game,
-           [actions.Action(rotation=rotate)] if rotate != 0 else [],
-           partial(_DropAndRotate, then=_Slide))
+
+    visit.add((cur.x, cur.y, cur.state))
+
+    if _AtBottom(cur, game):
+      ret.append((cur.copy(), path + [actions.Action(dir=actions.HARD_DROP)]))
+
+    # Exapands Q
+    for (x, y) in [(0, 1), (0, -1)]:
+      if (cur.x + x, cur.y + y, cur.state) not in visit:
+        if game.CheckValidity(cur, (x, y)):
+          piece_to_expand = cur.copy()
+          piece_to_expand.x += x
+          piece_to_expand.y += y
+
+          action = actions.Action()
+          if y == 1:
+            action.direction = actions.RIGHT
+          else:
+            action.direction = actions.LEFT
+          if (piece_to_expand.x, piece_to_expand.y,
+              piece_to_expand.state) not in visit:
+            q.put((piece_to_expand, path + [action]))
+
+    # SoftDrop
+    piece_to_expand = cur.copy()
+    while game.CheckValidity(piece_to_expand, (1,0)):
+      piece_to_expand.x += 1
+    action = actions.Action(dir=actions.SOFT_DROP)
+    if (piece_to_expand.x, piece_to_expand.y,
+        piece_to_expand.state) not in visit:
+      q.put((piece_to_expand, path + [action]))
+
+    # Expands rotations
+    if _AtBottom(cur, game) and cur.id != shape_o_id:
+      for rotate in [1, 2, 3]:
+        game.SpawnPiece(cur.copy())
+        if game.Rotate(rotate):
+          if (game.current_piece.x, game.current_piece.y,
+              game.current_piece.state) not in visit:
+            q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
+
   return ret
+
 
 def GetAllPossiblePositions(piece: shape.Shape,
                             game_: game_client.GameClient) -> (

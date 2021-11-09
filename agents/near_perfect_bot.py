@@ -52,7 +52,7 @@ class TheNearPerfectAgent(agent.Agent):
       if ori_game.CheckGameOver():
         return (None, None)
 
-      all_possible_solutions = agent.GetAllPossiblePositions(
+      all_possible_solutions = agent.GetPossiblePositionsQuickVersion(
         ori_game.current_piece, ori_game)
 
       best_move = ()
@@ -90,7 +90,6 @@ class TheNearPerfectAgent(agent.Agent):
 
         score = np.dot(self.weights,
                        [aggregate_height, complete_lines, holes, bumpiness])
-
 
         if score > best_move_score:
           best_move = move
