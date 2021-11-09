@@ -1,4 +1,6 @@
 # This file runs the perforamnce of the different verison of GetPossibleSolutions... function.
+# With bit map GetAllPossibleSolutions is ~0.29
+# With color_map this function is ~0.45
 import cProfile
 import pstats
 

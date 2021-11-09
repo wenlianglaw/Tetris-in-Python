@@ -51,7 +51,7 @@ class TheNearPerfectAgent(agent.Agent):
       if ori_game.CheckGameOver():
         return (None, None)
 
-      all_possible_solutions = agent.GetPossiblePositionsQuickVersion(
+      all_possible_solutions = agent.GetAllPossiblePositions(
         ori_game.current_piece, ori_game)
 
       best_move = ()
@@ -70,7 +70,7 @@ class TheNearPerfectAgent(agent.Agent):
         holes = self.GetHoles(game)
 
         # Height of each col
-        col_heights = [self.GetColHeight(game.map[:, i]) for i in range(ori_game.width)]
+        col_heights = [self.GetColHeight(game.color_map[:, i]) for i in range(ori_game.width)]
 
         # aggregate_height
         aggregate_height = np.sum(col_heights)

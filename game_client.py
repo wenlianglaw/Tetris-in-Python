@@ -744,12 +744,18 @@ class GameClient(GameState):
       for (offset_x, offset_y) in offset_map_jlstz[state][num_90rotations]:
         offset_piece.x = ori_x + offset_x
         offset_piece.y = ori_y + offset_y
+        if (offset_piece.y >= self.width or
+            offset_piece.x >= self.height + self.map_height_padding):
+          continue
         if self.CheckValidity(offset_piece):
           return offset_piece
     else:
       for (offset_x, offset_y) in offset_map_i[state][num_90rotations]:
         offset_piece.x = ori_x + offset_x
         offset_piece.y = ori_y + offset_y
+        if (offset_piece.y >= self.width or
+            offset_piece.x >= self.height + self.map_height_padding):
+          continue
         if self.CheckValidity(offset_piece):
           return offset_piece
 

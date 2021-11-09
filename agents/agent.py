@@ -155,8 +155,7 @@ def GetAllPossiblePositions(piece: shape.Shape,
     ret.append((game.piece_list[0], [action]))
 
   # visit[x,y,state]
-  visit = np.zeros(
-    game.color_map.shape + (4,), dtype=bool)
+  visit = set()
 
   # Element is (piece, [Actions])
 
@@ -165,17 +164,18 @@ def GetAllPossiblePositions(piece: shape.Shape,
 
   while not q.empty():
     (cur, path) = q.get()
-    if visit[cur.x, cur.y, cur.state]:
+    if (cur.x, cur.y, cur.state) in visit:
       continue
 
-    visit[cur.x, cur.y, cur.state] = True
+    visit.add((cur.x, cur.y, cur.state))
 
     if _AtBottom(cur, game):
       ret.append((cur.copy(), path + [actions.Action(dir=actions.HARD_DROP)]))
 
     # Exapands Q
     for (x, y) in [(1, 0), (0, 1), (0, -1)]:
-      if not visit[cur.x + x, cur.y + y, cur.state]:
+      if (cur.x + x, cur.y + y, cur.state) not in visit:
+        tt  = game.CheckValidity(cur, (x, y))
         if game.CheckValidity(cur, (x, y)):
           piece_to_expand = cur.copy()
           piece_to_expand.x += x
@@ -188,16 +188,16 @@ def GetAllPossiblePositions(piece: shape.Shape,
             action.direction = actions.RIGHT
           else:
             action.direction = actions.LEFT
-          if not visit[piece_to_expand.x, piece_to_expand.y,
-                       piece_to_expand.state]:
+          if (piece_to_expand.x, piece_to_expand.y,
+              piece_to_expand.state) not in visit:
             q.put((piece_to_expand, path + [action]))
 
     if _AtBottom(cur, game):
       for rotate in [1, 2, 3]:
         game.SpawnPiece(cur.copy())
         if game.Rotate(rotate):
-          if not visit[game.current_piece.x, game.current_piece.y,
-                       game.current_piece.state]:
+          if (game.current_piece.x, game.current_piece.y,
+                       game.current_piece.state) not in visit:
             q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
 
   return ret
