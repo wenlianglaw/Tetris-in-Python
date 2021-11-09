@@ -786,16 +786,17 @@ class GameClient(GameState):
     :param offset: The inital offset to the piece
     :return: True if the current state can fit into the color_map.  False otherwise.
     """
-    piece_cpy = piece.copy()
-    piece_cpy.x += offset[0]
-    piece_cpy.y += offset[1]
+    (ox, oy, os) = (piece.x, piece.y, piece.state)
+    piece.x += offset[0]
+    piece.y += offset[1]
 
-    a = self.bit_map[piece_cpy.x : piece_cpy.x + 4]
-    b = self.width - piece_cpy.y
-    c = piece_cpy.GetBitMap().astype(self.dtype)
+    a = self.bit_map[piece.x : piece.x + 4]
+    b = self.width - piece.y
+    c = piece.GetBitMap().astype(self.dtype)
     d = c << b
     e = a & d
     check_rst = e == 0
+    (piece.x, piece.y, piece.state) = (ox, oy, os)
     return np.all(check_rst)
 
   def _GetNextBag(self):

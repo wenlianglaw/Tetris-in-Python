@@ -78,7 +78,6 @@ class TheNearPerfectAgent(agent.Agent):
         # complete lines
         complete_lines = game.accumulated_lines_eliminated - prev_eliminated
 
-
         # Bumpiness
         bumpiness = 0
         for i in range(game.width-1):
@@ -91,6 +90,7 @@ class TheNearPerfectAgent(agent.Agent):
         if score > best_move_score:
           best_move = move
           best_move_score = score
+
       return (best_move_score, best_move)
 
     ori_game = self.env.game.copy()
