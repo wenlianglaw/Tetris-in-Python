@@ -144,7 +144,7 @@ class TetrisUI:
                       color, block_size)
 
   def _DrawMap(self):
-    for (i, row) in enumerate(self.game.map):
+    for (i, row) in enumerate(self.game.color_map):
       for (j, cell) in enumerate(row):
         self._DrawBlock(i, j, GetColorFromID(cell))
 

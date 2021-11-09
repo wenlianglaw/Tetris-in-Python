@@ -7,12 +7,12 @@ import numpy as np
 
 class NearPerfectBotTest(unittest.TestCase):
   def setUp(self) -> None:
-    self.game = game_client.GameClient(5, 5, height_buffer=0)
+    self.game = game_client.GameClient(5, 5)
     self.env = agent.Env(self.game)
     self.agent = near_perfect_bot.TheNearPerfectAgent(env=self.env)
 
   def test_GetHoles(self):
-    self.game.map = np.array([
+    self.game.color_map = np.array([
       # 0  1  2  3  4
       [0, 0, 0, 0, 0],  # 0
       [0, 0, 0, 0, 0],  # 1
@@ -24,7 +24,7 @@ class NearPerfectBotTest(unittest.TestCase):
     holes = self.agent.GetHoles(self.game)
     self.assertEqual(holes, 1)
 
-    self.game.map = np.array([
+    self.game.color_map = np.array([
       # 0  1  2  3  4
       [0, 0, 0, 0, 0],  # 0
       [0, 1, 0, 0, 0],  # 1
@@ -36,7 +36,7 @@ class NearPerfectBotTest(unittest.TestCase):
     self.assertEqual(holes, 4)
 
   def test_GetColHeight(self):
-    self.game.map = np.array([
+    self.game.color_map = np.array([
       # 0  1  2  3  4
       [0, 0, 0, 0, 0],  # 0
       [0, 1, 0, 0, 0],  # 1
@@ -45,5 +45,5 @@ class NearPerfectBotTest(unittest.TestCase):
       [1, 0, 0, 0, 0],  # 4
     ])
 
-    col_heights = [self.agent.GetColHeight(self.game.map[:, i]) for i in range(self.game.width)]
+    col_heights = [self.agent.GetColHeight(self.game.color_map[:, i]) for i in range(self.game.width)]
     self.assertListEqual(col_heights, [3, 4, 3, 0, 0])

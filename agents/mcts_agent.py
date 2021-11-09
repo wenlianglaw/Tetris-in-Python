@@ -115,9 +115,9 @@ class MCTSNode(mcts_algorithm.Node):
 
 
   def Reward(self, game: game_client.GameClient)->float:
-#    holes = self._CountHoles(game.map)
-    sub_holes = self._CountSubHoles(game.map)
-#    compactness = self._Compactness(game.map)
+#    holes = self._CountHoles(game.color_map)
+    sub_holes = self._CountSubHoles(game.color_map)
+#    compactness = self._Compactness(game.color_map)
     if game.is_gameover:
       return -10000
 
@@ -142,7 +142,7 @@ class MCTSNode(mcts_algorithm.Node):
 
   def __hash__(self):
     "Nodes must be hashable"
-    return (int.from_bytes(self.game.map.data.tobytes(), "little") ^
+    return (int.from_bytes(self.game.color_map.data.tobytes(), "little") ^
             hash(self.game.current_piece) ^ hash(self.game.held_piece) ^
             hash(len(self.action_list)))
 
@@ -154,7 +154,7 @@ class MCTSNode(mcts_algorithm.Node):
       if node1.action_list[i] != node2.action_list[i]:
         return False
 
-    return (np.array_equal(node1.game.map, node2.game.map) and
+    return (np.array_equal(node1.game.color_map, node2.game.map) and
             node1.game.current_piece == node2.game.current_piece and
             node1.game.held_piece == node2.game.held_piece)
 

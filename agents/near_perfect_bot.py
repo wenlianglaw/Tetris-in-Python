@@ -35,13 +35,13 @@ class TheNearPerfectAgent(agent.Agent):
 
   def GetHoles(self, game: game_client.GameClient) -> int:
     total_cnt = 0
-    for c in range(game.map.shape[1]):
+    for c in range(game.color_map.shape[1]):
       has_block = False
-      for r in range(game.map.shape[0]):
-        if game.map[r,c] != 0:
+      for r in range(game.color_map.shape[0]):
+        if game.color_map[r, c] != 0:
           has_block = True
 
-        if game.map[r,c] == 0 and has_block:
+        if game.color_map[r, c] == 0 and has_block:
           total_cnt += 1
     return total_cnt
 

@@ -154,7 +154,9 @@ def GetAllPossiblePositions(piece: shape.Shape,
     action = actions.Action(swap=True)
     ret.append((game.piece_list[0], [action]))
 
-  visit = np.zeros((game.height, game.width, 4), dtype=bool)
+  # visit[x,y,state]
+  visit = np.zeros(
+    game.color_map.shape + (4,), dtype=bool)
 
   # Element is (piece, [Actions])
 
@@ -190,12 +192,12 @@ def GetAllPossiblePositions(piece: shape.Shape,
                        piece_to_expand.state]:
             q.put((piece_to_expand, path + [action]))
 
-      if _AtBottom(cur, game):
-        for rotate in [1, 2, 3]:
-          game.SpawnPiece(cur.copy())
-          if game.Rotate(rotate):
-            if not visit[game.current_piece.x, game.current_piece.y,
-                         game.current_piece.state]:
-              q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
+    if _AtBottom(cur, game):
+      for rotate in [1, 2, 3]:
+        game.SpawnPiece(cur.copy())
+        if game.Rotate(rotate):
+          if not visit[game.current_piece.x, game.current_piece.y,
+                       game.current_piece.state]:
+            q.put((game.current_piece.copy(), path + [actions.Action(rotation=rotate)]))
 
   return ret

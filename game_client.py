@@ -10,7 +10,7 @@
 #  - current piece
 #  - held piece
 #  - piece list
-#  - map: game board
+#  - color_map: game board
 #  - InputActions(...):  Inputs a list of actions.
 #  - ProcessActions(...): Lets the game client process a list of actions
 #       directly
@@ -40,7 +40,7 @@ import queue
 # Some global settings
 DEFAULT_LENGTH = 20
 DEFAULT_WIDTH = 10
-DEFAULT_LENGTH_BUFFER = 3
+MAP_PADDING_SIZE = 4
 # When there are less than threshold pieces, spawn a new bag.
 REFILL_THRESHOLD = 5
 
@@ -67,12 +67,14 @@ ATTACK_TSD = 4
 ATTACK_TST = 6
 ATTACK_PC = 10
 
+class InternalError(Exception):
+  """Any internal errors."""
+
 class GameState:
   def __init__(self):
     self.height = 0
     self.width = 0
-    self.height_buffer = 0
-    self.map = np.array([])
+    self.color_map = np.array([])
     self.current_piece = None
     self.held_piece = None
     self.score = 0
@@ -86,9 +88,11 @@ class GameState:
     self.line_sent = 0
     self.line_received = 0
 
-  def __deepcopy__(self, memodict={}):
+  def __deepcopy__(self, memodict=None):
+    if memodict is None:
+      memodict = dict()
     another = copy.copy(self)
-    another.map = self.map.copy()
+    another.color_map = self.color_map.copy()
     if self.current_piece is not None:
       another.current_piece = self.current_piece.copy()
     if self.held_piece is not None:
@@ -103,7 +107,7 @@ class GameState:
     ret = ""
     ret += f"""height: {self.height}
 width: {self.width}
-map: {self.map}
+color_map: {self.color_map}
 current_piece: {self.current_piece}
 held_piece: {self.held_piece}
 score: {self.score}
@@ -115,17 +119,32 @@ level: {self.level}
     """
 
 class GameClient(GameState):
-  def __init__(self, height: int = DEFAULT_LENGTH,
-               width: int = DEFAULT_WIDTH,
-               refill_threshold: int = REFILL_THRESHOLD,
-               height_buffer: int = DEFAULT_LENGTH_BUFFER):
+  def __init__(self, height: int = DEFAULT_LENGTH, width: int = DEFAULT_WIDTH, map_height_padding=MAP_PADDING_SIZE,
+               map_side_padding=MAP_PADDING_SIZE):
     super().__init__()
 
-    # 4 lines buffer
-    self.height_buffer = height_buffer
-    self.height = height + height_buffer
+    self.height = height
     self.width = width
-    self.refill_threshold = refill_threshold
+    self.map_height_padding = map_height_padding
+    self.map_side_padding = map_side_padding
+
+    self.dtype = np.uint8
+    self.dtype_length = 8
+    if self.width + 2 * map_side_padding > 8:
+      self.dtype = np.uint16
+      self.dtype_length = 16
+    if self.width + 2 * map_side_padding > 16:
+      self.dtype = np.uint32
+      self.dtype_length = 32
+    if self.width + 2 * map_side_padding > 32:
+      self.dtype = np.uint64
+      self.dtype_length = 64
+    if self.width + 2 * map_side_padding > 64:
+      self.dtype = np.uint128
+      self.dtype_length = 128
+    if self.width + 2 * map_side_padding > 128:
+      raise InternalError(
+        "width too long to support bit map.  Consider chaning it to a smaller value.")
 
     # Lock time settings
     # When the lock is enabled, count the lock time.
@@ -140,7 +159,12 @@ class GameClient(GameState):
     # Only when move  or rotate at bottom locks the auto drop
     self._enable_lock_time = False
 
-    self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)], dtype=np.int)
+    # Color map marks the color for each cell.
+    self.color_map = np.array([[]], dtype=self.dtype)
+
+    # Bit map for a better performance in some calculation.
+    self.bit_map = np.array([], dtype=self.dtype)
+
     # Lock for current_piece
     self.mutex_current_piece = Lock()
     self.last_put_piece = None
@@ -179,8 +203,23 @@ class GameClient(GameState):
     self.soft_drop = False
     self.piece_dropped = 0
 
+    # Must be put after the initializations above
+    self._InitMap()
+
+  def _InitMap(self):
+    side_padding = (1<<self.map_side_padding) - 1
+    init_row = (side_padding << (self.map_side_padding + self.width)) | side_padding
+    bottom_padding = (1 << (self.width + 2 * self.map_side_padding)) - 1
+    self.bit_map = np.concatenate((
+      np.array((self.map_height_padding + self.height) * [init_row], dtype=self.dtype),
+      np.array(self.map_height_padding * [bottom_padding], dtype=self.dtype)), dtype=self.dtype)
+
+
+    self.color_map = np.array([[0 for i in range(self.width)] for x in range(self.height + self.map_height_padding)],
+                              dtype=self.dtype)
+
   def Restart(self):
-    self.map = np.array([[0 for i in range(self.width)] for x in range(self.height)])
+    self._InitMap()
     self.piece_list = []
     self.held_piece = None
     self.current_piece = None
@@ -227,12 +266,78 @@ class GameClient(GameState):
     """
     return copy.deepcopy(super())
 
+  def GetCell(self, i: int, j: int) -> int:
+    """Gets cell at [i,j].
+    Notes: This function doesn't check the index out of boundary error.
+    """
+    return self.color_map[i, j]
+
+  def GetMap(self):
+    """Gets whole color_map."""
+    return self.color_map
+
+  def GetMapArea(self, corner: Tuple[int, int],
+                 size: Tuple[int, int]) -> np.array:
+    """Gets an area of
+    :param top_left:
+    :param bottom_right:
+    :return: The area of the color_map.
+    """
+    size = (np.min([size[0], self.color_map.shape[0] - corner[0]]),
+            np.min([size[1], self.color_map.shape[1] - corner[1]]))
+
+    return self.color_map[corner[0]: corner[0] + size[0],
+           corner[1]: corner[1] + size[1]]
+
+  def SetMap(self, pos: Tuple[int, int], v: int, map: np.array = None):
+    """Sets the cell at [i,j] to value v."""
+    (i, j) = pos
+    bit_map = self.bit_map.copy()
+    if map is None:
+      map = self.color_map
+      bit_map = self.bit_map
+    map[i, j] = v
+
+    # Set a bit to value: Clear to bit to 0 and then set to value
+    bit_v = 0 if v == 0 else 1
+    bit_j_pos = self.width + self.map_side_padding - 1 - j
+    bit_map[i] = (bit_map[i] & ~(1 << bit_j_pos)) | (bit_v << bit_j_pos)
+
+  def SetWholeMap(self, map: np.array):
+    if map.shape != self.color_map.shape:
+      raise InternalError(
+        f"Map shape {map.shape}"
+        f" must match the color_map shape: {self.color_map.shape}")
+
+    self.color_map = map
+
+    # Convert the map to Bollean map
+    bit_color_map = map != 0
+
+    # Revert the order and padding, then call the packbits(..., order="little") fn
+    bit_color_map = bit_color_map[:, ::-1]
+    bit_color_map = np.pad(
+      bit_color_map,
+      ((0, 0), (self.map_side_padding, self.map_side_padding)),
+      "constant", constant_values=(1,))
+
+    padding0_len = self.dtype_length - bit_color_map.shape[1]
+    bit_color_map = np.pad(bit_color_map, ((0,0), (0, padding0_len)),
+                     "constant", constant_values=(0,))
+
+    int_color_map = np.packbits(bit_color_map, bitorder="little").view(self.dtype)
+    self.bit_map[0:self.map_height_padding + self.height] = int_color_map
+    print(int_color_map)
+    print(self.bit_map)
+
+
   def copy(self):
     another = copy.copy(self)
     another.last_action = copy.copy(self.last_action)
     if self.last_put_piece is not None:
       another.last_put_piece = self.last_put_piece.copy()
-    another.map = np.copy(self.map)
+    another.color_map = np.copy(self.color_map)
+    another.bit_map = np.copy(self.bit_map)
     another.action_list = copy.copy(self.action_list)
     another.piece_list = self.piece_list.copy()
     another.current_piece = self.current_piece.copy()
@@ -311,7 +416,7 @@ class GameClient(GameState):
   def Move(self, action: actions.Action, post_processing=True) -> bool:
     """Moves the current piece.
     :param direction: Direction to move
-    :param post_processing: if True, put the piece to map and
+    :param post_processing: if True, put the piece to color_map and
            apply line eliminate. Otherwise just update the current_piece's states.
     :return True if moved; False otherwise
     """
@@ -347,7 +452,7 @@ class GameClient(GameState):
           moved = True
       finally:
         self.mutex_current_piece.release()
-    if action.direction == actions.HARD_DROP or action.direction == actions.SOFT_DROP :
+    if action.direction == actions.HARD_DROP or action.direction == actions.SOFT_DROP:
       try:
         self.mutex_current_piece.acquire()
         while self.CheckValidity(self.current_piece, (1, 0)):
@@ -355,7 +460,7 @@ class GameClient(GameState):
           moved = True
       finally:
         self.mutex_current_piece.release()
-        if post_processing and action.direction == actions.HARD_DROP :
+        if post_processing and action.direction == actions.HARD_DROP:
           self.PutPiece()
 
     if moved:
@@ -401,7 +506,9 @@ class GameClient(GameState):
       self.mutex_current_piece.release()
 
   def CheckGameOver(self):
-    self.is_gameover = np.any(self.map[0:self.height_buffer, :] != 0)
+    self.is_gameover = np.any(
+      self.GetMapArea((0, 0), (self.map_height_padding, self.width)) != 0)
+
     return self.is_gameover
 
   def _AnalyzeElimination(self, n_eliminate: int) -> int:
@@ -440,14 +547,14 @@ class GameClient(GameState):
       self.line_tobesent += ATTACK_QUAD
 
     # Checks for PC
-    if np.all(self.map == 0):
+    if np.all(self.color_map == 0):
       print("PC")
       ret += PC
       self.line_tobesent += ATTACK_PC
 
     return ret * (self.level + 3)
 
-  def _LineClear(self, game_map: np.array = None):
+  def _LineClear(self):
     elimated_lines = []
     elimated_cnt = 0
     # Checks the 4 lines... This is not adapt to shape with higher than 4 lines
@@ -457,13 +564,13 @@ class GameClient(GameState):
       if not (self.last_put_piece.x + row >= 0 and
               self.last_put_piece.x + row < self.height):
         continue
-      if np.all(self.map[self.last_put_piece.x + row, :] != 0):
+      if np.all(self.color_map[self.last_put_piece.x + row, :] != 0):
         elimated_lines.append(row + self.last_put_piece.x)
         elimated_cnt += 1
 
-    self.map = np.vstack((np.zeros((elimated_cnt, self.width),
-                                   dtype=np.int),
-                          np.delete(self.map, elimated_lines, axis=0)))
+    self.color_map = np.vstack((np.zeros((elimated_cnt, self.width),
+                                         dtype=self.dtype),
+                                np.delete(self.color_map, elimated_lines, axis=0)))
 
     self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)
@@ -475,10 +582,10 @@ class GameClient(GameState):
     self.line_tobesent = 0
 
   def PutPiece(self, piece: shape.Shape = None):
-    """ Puts a piece to map if it is a valid placement then execute the post processing.
+    """ Puts a piece to color_map if it is a valid placement then execute the post processing.
 
     :param piece: The piece to put, if None, put the self.current_piece
-    :param map: The map where the piece puts, if None, self.map will be used.
+    :param color_map: The color_map where the piece puts, if None, self.color_map will be used.
     :returns: True if the piece has been put.  False otherwise.
     """
     if self._PrePutPiece(piece):
@@ -488,11 +595,11 @@ class GameClient(GameState):
       return False
 
   def _PrePutPiece(self, piece: shape.Shape = None, map: np.array = None):
-    """ Puts a piece to map if it is a valid placement.
+    """ Puts a piece to color_map if it is a valid placement.
       Post put processing such as self._LineClear will not be executed
 
     :param piece: The piece to put, if None, put the self.current_piece
-    :param map: The map where the piece puts, if None, self.map will be used.
+    :param map: The color_map where the piece puts, if None, self.color_map will be used.
     :returns: True if the piece has been put.  False otherwise.
     """
     try:
@@ -501,13 +608,13 @@ class GameClient(GameState):
         piece = self.current_piece
 
       if map is None:
-        map = self.map
+        map = self.color_map
 
       if not self.CheckValidity(piece):
         return False
 
       for (i, j) in piece.GetShape():
-        map[piece.x + i, piece.y + j] = piece.id
+        self.SetMap((piece.x + i, piece.y + j), piece.id, map)
       return True
     finally:
       if self.mutex_current_piece.locked():
@@ -531,7 +638,7 @@ class GameClient(GameState):
     self.piece_dropped += 1
 
   def TextDraw(self):
-    preview_map = self.map.copy()
+    preview_map = self.color_map.copy()
     self._PrePutPiece(self.current_piece, preview_map)
     for i in preview_map:
       print(i)
@@ -548,9 +655,9 @@ class GameClient(GameState):
   def _FindFittedPiece(self, piece: shape.Shape = None, num_90rotations: int = 0):
     """Finds a location that fits this piece with n 90rotations.
     Ref: https://tetris.fandom.com/wiki/SRS
-    :param piece: The piece to be put in the map.  If none, it will be set to the current_piece
+    :param piece: The piece to be put in the color_map.  If none, it will be set to the current_piece
     :param num_90rotations: How many 90 rotations
-    :return: piece - shape.Shape: the piece with rotations that fits the map.
+    :return: piece - shape.Shape: the piece with rotations that fits the color_map.
     """
     if not piece:
       piece = self.current_piece
@@ -569,12 +676,14 @@ class GameClient(GameState):
     offset_map_jlstz = [
       # state 0
       ([(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)],  # 0>>1
-       [(1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],  # 0>>2, 180 rotation
+       # 0>>2, 180 rotation
+       [(1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],
        [(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)]),  # 0>>3
 
       # state 1
       ([(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)],  # 1>>2
-       [(0, 1), (0, 2), (-1, 1), (-1, 2), (0, -1), (0, -2), (-1, -1), (-1, -2), (1, 0), (0, 3), (0, -3)],  # l>>3, 180 rotation
+       # l>>3, 180 rotation
+       [(0, 1), (0, 2), (-1, 1), (-1, 2), (0, -1), (0, -2), (-1, -1), (-1, -2), (1, 0), (0, 3), (0, -3)],
        [(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)]),  # 1>>0
 
       # state 2
@@ -584,7 +693,8 @@ class GameClient(GameState):
 
       # state 3
       ([(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)],  # 3>>0
-       [(0, 1), (0, 2), (1, 1), (1, 2), (0, -1), (0, -2), (1, -1), (1, -2), (-1, 0), (0, 3), (0, -3)],  # 3>>1, 180 rotation
+       # 3>>1, 180 rotation
+       [(0, 1), (0, 2), (1, 1), (1, 2), (0, -1), (0, -2), (1, -1), (1, -2), (-1, 0), (0, 3), (0, -3)],
        [(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)]),  # 3>>2
     ]
 
@@ -659,18 +769,22 @@ class GameClient(GameState):
     return fitted_piece is not None
 
   def CheckValidity(self, piece: shape.Shape, offset: Tuple[int, int] = (0, 0)):
-    """Checks if the piece with offset can be put in the map
+    """Checks if the piece with offset can be put in the color_map
     :param piece: The piece to be put.
     :param offset: The inital offset to the piece
-    :return: True if the current state can fit into the map.  False otherwise.
+    :return: True if the current state can fit into the color_map.  False otherwise.
     """
-    for (i, j) in piece.GetShape():
-      pos_i = i + piece.x + offset[0]
-      pos_j = j + piece.y + offset[1]
-      if (pos_i < 0 or pos_i >= self.height or pos_j < 0 or pos_j >= self.width or
-          self.map[pos_i][pos_j] != 0):
-        return False
-    return True
+    piece_cpy = piece.copy()
+    piece_cpy.x += offset[0]
+    piece_cpy.y += offset[1]
+
+    a = self.bit_map[piece_cpy.x : piece_cpy.x + 4]
+    b = self.width - piece_cpy.y
+    c = piece_cpy.GetBitMap().astype(self.dtype)
+    d = c << b
+    e = a & d
+    check_rst = e == 0
+    return np.all(check_rst)
 
   def _GetNextBag(self):
     start_y = int((self.width - 3) / 2)
@@ -688,10 +802,10 @@ class GameClient(GameState):
 
   def _RefillPieces(self):
     """
-    When there are less than `self.refill_threshold` pieces in the list,
+    When there are less than REFILL_THRESHOLD pieces in the list,
     refill it with a new bag.
     """
-    if len(self.piece_list) <= self.refill_threshold:
+    if len(self.piece_list) <= REFILL_THRESHOLD:
       self.piece_list.extend(self._GetNextBag())
 
   def _TakePieceFromList(self):
@@ -700,10 +814,8 @@ class GameClient(GameState):
     self.piece_list = self.piece_list[1:]
 
 def CreateGameFromState(state: GameState) -> GameClient:
-  game = GameClient(height=state.height - state.height_buffer,
-                    width=state.width,
-                    height_buffer=state.height_buffer)
-  game.map = np.copy(state.map)
+  game = GameClient(height=state.height, width=state.width)
+  game.color_map = np.copy(state.color_map)
   game.current_piece = state.current_piece.copy()
   if state.held_piece is not None:
     game.held_piece = state.held_piece.copy()

@@ -9,59 +9,95 @@ import abc
 
 import numpy as np
 
-# These offsets are stored as global variables to avoid mem copy.
 _SHAPES_I = np.array([
   [(1, 0), (1, 1), (1, 2), (1, 3)],
   [(0, 2), (1, 2), (2, 2), (3, 2)],
   [(2, 0), (2, 1), (2, 2), (2, 3)],
   [(0, 1), (1, 1), (2, 1), (3, 1)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_J = np.array([
   [(0, 0), (1, 0), (1, 1), (1, 2)],
   [(0, 1), (1, 1), (2, 1), (0, 2)],
   [(1, 0), (1, 1), (1, 2), (2, 2)],
   [(2, 0), (0, 1), (1, 1), (2, 1)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_L = np.array([
   [(1, 0), (1, 1), (0, 2), (1, 2)],
   [(0, 1), (1, 1), (2, 1), (2, 2)],
   [(1, 0), (1, 1), (1, 2), (2, 0)],
   [(0, 0), (0, 1), (1, 1), (2, 1)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_O = np.array([
   [(0, 1), (1, 1), (0, 2), (1, 2)],
   [(0, 1), (1, 1), (0, 2), (1, 2)],
   [(0, 1), (1, 1), (0, 2), (1, 2)],
   [(0, 1), (1, 1), (0, 2), (1, 2)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_S = np.array([
   [(1, 0), (0, 1), (1, 1), (0, 2)],
   [(0, 1), (1, 1), (1, 2), (2, 2)],
   [(1, 1), (1, 2), (2, 0), (2, 1)],
   [(0, 0), (1, 0), (1, 1), (2, 1)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_T = np.array([
   [(0, 1), (1, 0), (1, 1), (1, 2)],
   [(0, 1), (1, 1), (2, 1), (1, 2)],
   [(1, 0), (1, 1), (1, 2), (2, 1)],
   [(1, 0), (0, 1), (1, 1), (2, 1)],
-], dtype=np.int)
+], dtype=np.uint8)
 
 _SHAPES_Z = np.array([
   [(0, 0), (0, 1), (1, 1), (1, 2)],
   [(1, 1), (2, 1), (1, 2), (0, 2)],
   [(1, 0), (1, 1), (2, 1), (2, 2)],
   [(1, 0), (0, 1), (1, 1), (2, 0)],
-], dtype=np.int)
+], dtype=np.uint8)
+
+# These offsets are stored as global variables to avoid mem copy.
+_BIT_SHAPES_I = np.array([[0, 15, 0, 0],
+                          [2, 2, 2, 2],
+                          [0, 0, 15, 0],
+                          [4, 4, 4, 4]], dtype=np.uint8)
+
+_BIT_SHAPES_J = np.array([[8, 14, 0, 0],
+                          [6, 4, 4, 0],
+                          [0, 14, 2, 0],
+                          [4, 4, 12, 0]], dtype=np.uint8)
+
+_BIT_SHAPES_L = np.array([[2, 14, 0, 0],
+                          [4, 4, 6, 0],
+                          [0, 14, 8, 0],
+                          [12, 4, 4, 0]], dtype=np.uint8)
+
+_BIT_SHAPES_O = np.array([[6, 6, 0, 0],
+                          [6, 6, 0, 0],
+                          [6, 6, 0, 0],
+                          [6, 6, 0, 0]], dtype=np.uint8)
+
+_BIT_SHAPES_S = np.array([[6, 12, 0, 0],
+                          [4, 6, 2, 0],
+                          [0, 6, 12, 0],
+                          [8, 12, 4, 0]], dtype=np.uint8)
+
+_BIT_SHAPES_T = np.array([[4, 14, 0, 0],
+                          [4, 6, 4, 0],
+                          [0, 14, 4, 0],
+                          [4, 12, 4, 0]], dtype=np.uint8)
+
+_BIT_SHAPES_Z = np.array([[12, 6, 0, 0],
+                          [2, 6, 4, 0],
+                          [0, 12, 6, 0],
+                          [4, 12, 8, 0]], dtype=np.uint8)
 
 class Shape:
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     self.shape = None
+    self.bit_map = None
     self._start_x = start_x
     self._start_y = start_y
     self.x = start_x
@@ -101,9 +137,25 @@ class Shape:
     self.x = self._start_x
     self.y = self._start_y
     self.state = 0
+    self.shape = [None,
+                  _SHAPES_I, _SHAPES_J, _SHAPES_L,
+                  _SHAPES_O, _SHAPES_S, _SHAPES_T,
+                  _SHAPES_Z][self.id]
+
+    self.bit_map = [None,
+                    _BIT_SHAPES_I,
+                    _BIT_SHAPES_J,
+                    _BIT_SHAPES_L,
+                    _BIT_SHAPES_O,
+                    _BIT_SHAPES_S,
+                    _BIT_SHAPES_T,
+                    _BIT_SHAPES_Z][self.id]
 
   def GetShape(self):
     return self.shape[self.state]
+
+  def GetBitMap(self):
+    return self.bit_map[self.state]
 
   def __eq__(self, other):
     if other is None:
@@ -122,7 +174,7 @@ class Shape:
       f"({self.x}, {self.y})",
       f"state:{self.state}", ""
     ])
-    display_area = np.zeros((4, 4), dtype=np.int)
+    display_area = np.zeros((4, 4), dtype=np.uint8)
     for (i, j) in self.GetShape():
       display_area[i, j] = 1
     ret += display_area.__str__()
@@ -139,75 +191,46 @@ class Shape:
     return copy.copy(self)
 
 class I(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
     self.id = 1
     self.Init()
 
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_I
-
 class J(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 2
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_J
+    self.Init()
 
 class L(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 3
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_L
+    self.Init()
 
 class O(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 4
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_O
+    self.Init()
 
 class S(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 5
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_S
+    self.Init()
 
 class T(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 6
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_T
+    self.Init()
 
 class Z(Shape):
-  def __init__(self, start_x: int = 1, start_y: int = 3):
+  def __init__(self, start_x: int = 2, start_y: int = 3):
     Shape.__init__(self, start_x=start_x, start_y=start_y)
-    self.Init()
     self.id = 7
-
-  def Init(self):
-    super().Init()
-    self.shape = _SHAPES_Z
-
+    self.Init()
 
 def GetShapeFromId(id: int) -> Shape:
   return [None, I(), J(), L(), O(), S(), T(), Z()][id]

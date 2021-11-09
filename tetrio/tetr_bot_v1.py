@@ -159,7 +159,7 @@ class SnapshotBoard(object):
     return np.sum(cur_color) / np.sum(prev_color) >= threshold
 
   def GrabGameBoard(self) -> np.array:
-    map = np.zeros(shape=(20, 10), dtype=np.int)
+    map = np.zeros(shape=(20, 10), dtype=np.uint8)
     for x in range(10):
       for y in range(20):
         cell_x = self.board_box[0] + self.cell_height / 2 + x * self.cell_height
@@ -227,9 +227,9 @@ def Run():
       continue
     finally:
       time.sleep(0.001)
-      # print(map)
+      # print(color_map)
 
-    game.map[-20:,:] = map
+    game.color_map[-20:, :] = map
     if cur_piece_id == 0:
       continue
     game.current_piece = shape.GetShapeFromId(cur_piece_id)
