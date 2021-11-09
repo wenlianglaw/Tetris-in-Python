@@ -26,7 +26,6 @@ class TestGameClient(unittest.TestCase):
     t.y = 0
     self.assertTrue(game.CheckValidity(t))
 
-
     t.x += 1
     self.assertTrue(game.CheckValidity(t))
 
@@ -40,6 +39,24 @@ class TestGameClient(unittest.TestCase):
     t.y = 0
     self.assertTrue(game.CheckValidity(t))
     self.assertFalse(game.CheckValidity(t, offset=(0, 1)))
+
+  def test_CheckValidity2(self):
+    game = game_client.GameClient(height=5, width=5, map_height_padding=4)
+
+    for i in range(4):
+      game.SetMap((2, i), shape.O().id)
+
+
+    i = shape.I()
+    i.x = 0
+    i.y = 0
+    self.assertTrue(game.CheckValidity(i))
+    game.SpawnPiece(i)
+    game.TextDraw()
+    self.assertFalse(game.CheckValidity(i, (1,0)))
+
+
+
 
   def test_PutPiece(self):
     self.game = game_client.GameClient(height=8, width=10, map_height_padding=0)
