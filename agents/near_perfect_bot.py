@@ -33,17 +33,18 @@ class TheNearPerfectAgent(agent.Agent):
         break
     return len(col) - row_height
 
-  def GetHoles(self, game: game_client.GameClient) -> int:
-    total_cnt = 0
-    for c in range(game.color_map.shape[1]):
+  def _UpdateHoles(self, rst, start_pos, end_pos, game: game_client.GameClient):
+    start_pos = max(0, start_pos)
+    end_pos = min(end_pos, game.width)
+    for i in range(start_pos, end_pos):
+      cnt = 0
       has_block = False
-      for r in range(game.color_map.shape[0]):
-        if game.color_map[r, c] != 0:
+      for r in range(game.height + game.map_height_padding):
+        if game.color_map[r, i] != 0:
           has_block = True
-
-        if game.color_map[r, c] == 0 and has_block:
-          total_cnt += 1
-    return total_cnt
+        if has_block and game.color_map[r, i] == 0:
+          cnt += 1
+      rst[i] = cnt
 
   def MakeDecision(self) -> List[actions.Action]:
 
@@ -57,6 +58,9 @@ class TheNearPerfectAgent(agent.Agent):
       best_move = ()
       best_move_score = -np.inf
 
+      col_holes = ori_game.width * [0]
+      self._UpdateHoles(col_holes, 0, ori_game.width, ori_game)
+
       for move in all_possible_solutions:
         game = ori_game.copy()
         if move[1][0].swap:
@@ -67,7 +71,8 @@ class TheNearPerfectAgent(agent.Agent):
         game.PutPiece(move[0])
 
         # holes
-        holes = self.GetHoles(game)
+        self._UpdateHoles(col_holes, move[0].y, move[0].y + 4, game)
+        holes = np.sum(col_holes)
 
         # Height of each col
         col_heights = [self.GetColHeight(game.color_map[:, i]) for i in range(ori_game.width)]
