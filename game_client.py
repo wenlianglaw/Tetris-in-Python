@@ -293,7 +293,7 @@ class GameClient(GameState):
     """Sets the cell at [i,j] to value v."""
     (i, j) = pos
     bit_map = self.bit_map.copy()
-    if map is None:
+    if map is None or map is self.color_map:
       map = self.color_map
       bit_map = self.bit_map
     map[i, j] = v
@@ -562,7 +562,7 @@ class GameClient(GameState):
     # shapes.
     for row in range(4):
       if not (self.last_put_piece.x + row >= 0 and
-              self.last_put_piece.x + row < self.height):
+              self.last_put_piece.x + row < self.height + self.map_height_padding):
         continue
       if np.all(self.color_map[self.last_put_piece.x + row, :] != 0):
         elimated_lines.append(row + self.last_put_piece.x)
@@ -571,6 +571,12 @@ class GameClient(GameState):
     self.color_map = np.vstack((np.zeros((elimated_cnt, self.width),
                                          dtype=self.dtype),
                                 np.delete(self.color_map, elimated_lines, axis=0)))
+
+    # Updates the bit_map
+    side_padding = (1<<self.map_side_padding) - 1
+    init_row = (side_padding << (self.map_side_padding + self.width)) | side_padding
+    self.bit_map = np.concatenate((elimated_cnt * [init_row],
+                                   np.delete(self.bit_map, elimated_lines))).astype(self.dtype)
 
     self.accumulated_lines_eliminated += elimated_cnt
     self.score += self._AnalyzeElimination(n_eliminate=elimated_cnt)

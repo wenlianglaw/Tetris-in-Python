@@ -57,7 +57,6 @@ class TestGameClient(unittest.TestCase):
 
 
 
-
   def test_PutPiece(self):
     self.game = game_client.GameClient(height=8, width=10, map_height_padding=0)
     i = shape.I()
@@ -419,6 +418,43 @@ class TestGameClient(unittest.TestCase):
     self.game.PutPiece()
     self.assertTrue(np.all(self.game.color_map == 0))
     self.assertEqual(self.game.color_map.shape, (self.game.height, self.game.width))
+
+
+  def test_LineClear2(self):
+    print("1234")
+    game = game_client.GameClient(height=8, width=10)
+    game.SetWholeMap(np.array([
+      #0  1  2  3  4  5  6  7  8  9
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -4
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -3
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -2
+      [0, 0, 9, 0, 0, 0, 0, 0, 0, 0],  # -1
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 0
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 0
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],  # 2
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],  # 3
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],  # 4
+      [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],  # 5
+      [0, 0, 0, 2, 0, 0, 0, 0, 0, 0],  # 6
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # 7
+    ))
+
+    i = shape.I()
+    (i.x, i.y) = (2,2)
+    i.Rotate270()
+
+    game.SpawnPiece(i)
+    game.TextDraw()
+
+    self.assertEqual(game.GetCell(3,2), 9)
+
+    before_line_eliminated = game.accumulated_lines_eliminated
+    game.ProcessActions([actions.Action(dir=actions.HARD_DROP)])
+    game.TextDraw()
+    after_line_eliminated = game.accumulated_lines_eliminated
+    self.assertEqual(after_line_eliminated - before_line_eliminated, 4)
+    self.assertEqual(game.GetCell(3 + 4,2), 9)
+
 
   def test_GameCopy(self):
     game = self.game.copy()
