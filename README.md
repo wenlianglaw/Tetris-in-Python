@@ -16,11 +16,12 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - pyopengl-accelerate
 - readerwriterlock
 - PIL
-- pynput (tetr.io hack)
+- keyboardr (keyboard simulation for tetr.io bot)
+- mss (faster screenshot lib)
 
 ### For Mac
 ```
-pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock PIL pynput
+pip install numpy scipy pyopengl pyopengl-accelerate readerwriterlock pillow keyboard mss
 ```
 
 #### If you counter OpenGL issue in MacOS Big Sur

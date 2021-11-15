@@ -1,14 +1,11 @@
 import time
-
-import PIL
-from PIL import ImageGrab
-from PIL import ImageFilter
-from PIL import Image
-
-import numpy as np
-
 from typing import Tuple, Text
 
+import PIL
+import numpy as np
+from PIL import Image
+from PIL import ImageFilter
+from mss import mss
 
 COLORBASE_BOARD = [
   (185, 90, 90),  # Z
@@ -20,21 +17,44 @@ COLORBASE_BOARD = [
   (196, 178, 86),  # O
 ]
 
-COLORBASE_CUR = [
-  (237, 133, 98),  # Z
-  (250, 251, 126),  # S
-  (239, 145, 194),  # T
-  (248, 204, 94),  # L
-  (158, 137, 199),  # J
-  (169, 249, 196),  # I
-  (255, 251, 125),  # O
-]
-
 PIECE_NAME = "_IJLOSTZ"
 
+CUR_PIECE_SHAPE_PATTERN = [
+  ([
+     [0, 0, 0, 0],
+     [1, 1, 1, 1],
+   ], 1),
+  ([
+     [1, 0, 0, 0],
+     [1, 1, 1, 0],
+   ], 2),
+  ([
+     [0, 0, 1, 0],
+     [1, 1, 1, 0],
+   ], 3),
+  (np.array([
+    [0, 1, 1, 0],
+    [0, 1, 1, 0],
+  ]), 4),
+  ([
+     [0, 1, 1, 0],
+     [1, 1, 0, 0],
+   ], 5),
+  ([
+     [0, 1, 0, 0],
+     [1, 1, 1, 0],
+   ], 6),
+  (
+    [
+      [1, 1, 0, 0],
+      [0, 1, 1, 0],
+    ], 7),
+]
+
+
 class SnapshotBoard(object):
-  def __init__(self):
-    self.tetr_window_box = (0, 0, 1300, 1300)
+  def __init__(self, window_box=(0, 0, 1300, 1300)):
+    self.tetr_window_box = window_box
     self.cell_height = 0
 
     self.hold_box = (0, 0, 0, 0)
@@ -47,21 +67,28 @@ class SnapshotBoard(object):
 
     self.im = None
 
-  def SaveImage(self, filename = "img.png"):
+  def SaveImage(self, filename="img.png"):
     if self.im:
       self.im.save(filename)
 
+  def _CaptureScreenshot(self):
+    # Capture entire screen
+    with mss() as sct:
+      monitor = {"top": 0, "left": 0,
+                 "width": self.tetr_window_box[2],
+                 "height": self.tetr_window_box[3]}
+      sct_img = sct.grab(monitor)
+      return Image.frombytes(
+        'RGB', sct_img.size,
+        sct_img.bgra, 'raw', 'BGRX')
+
   def SnapshotGame(self):
-    self.im = ImageGrab.grab()
-    self.im = self.im.crop(self.tetr_window_box)
+    self.im = self._CaptureScreenshot()
+    # self.im = self.im.crop(self.tetr_window_box)
 
   def ReadSettings(self, filename: Text):
     im_settings = Image.open(filename)
     im_settings.title = "settings"
-
-    # hold_color = (0, 255, 0)
-    # board_color = (255, 0, 0)
-    # next_color = (0, 0, 255)
 
     np_im = np.array(im_settings)
     print(np_im.shape)
@@ -99,13 +126,13 @@ class SnapshotBoard(object):
     cells_x = []
     for i in range(height):
       cur_color = im_board_edge.getpixel((width / 2, i))
-      if self._ColorDrasticalyChanged(prev_color, cur_color):
+      if self._ColorChanged(prev_color, cur_color):
         cells_y.append(i)
       prev_color = cur_color
 
     for i in range(width):
       cur_color = im_board_edge.getpixel((i, 100))
-      if self._ColorDrasticalyChanged(prev_color, cur_color):
+      if self._ColorChanged(prev_color, cur_color):
         cells_x.append(i)
       prev_color = cur_color
 
@@ -118,14 +145,32 @@ class SnapshotBoard(object):
     while len(cell_heights) == 0:
       m += 0.1
       cell_heights = self._RejectOutliers(ori_cell_heights, m)
-
     print(cell_heights)
-    cell_height = np.median(cell_heights)
 
-    self.cell_height = cell_height
+    self.cell_height = np.bincount(cell_heights).argmax()
 
   def Init(self, settings_file_name: Text = "settings.bmp"):
     self.ReadSettings(settings_file_name)
+
+  def _RejectOutliers(self, data, m=.5):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d / mdev if mdev else 0.
+    return data[s < m]
+
+  def _ColorChanged(self, prev_color: Tuple[int, int, int],
+                    cur_color: Tuple[int, int, int],
+                    threshold: float = 4) -> bool:
+    if np.sum(prev_color) == 0:
+      return np.sum(cur_color) > 50
+    return np.sum(cur_color) / np.sum(prev_color) >= threshold
+
+  def _ColorChanged2(self, prev_color: Tuple[int, int, int],
+                     cur_color: Tuple[int, int, int],
+                     threshold: float = 500):
+    """Another experience function to detect color change."""
+    var = np.var(np.subtract(prev_color, cur_color))
+    return var >= threshold
 
   def _GetIdFromColor(self, color: Tuple[int, int, int], threshold=20, color_base=COLORBASE_BOARD):
     colors_id = [7, 5, 6, 3, 2, 1, 4]
@@ -139,27 +184,13 @@ class SnapshotBoard(object):
       return 0
     return colors_id[min]
 
-  def _RejectOutliers(self, data, m=.5):
-    d = np.abs(data - np.median(data))
-    mdev = np.median(d)
-    s = d / mdev if mdev else 0.
-    return data[s < m]
-
-  def _ColorDrasticalyChanged(self, prev_color: Tuple[int, int, int],
-                              cur_color: Tuple[int, int, int],
-                              threshold: float = 4) -> bool:
-    if np.sum(prev_color) == 0:
-      return np.sum(cur_color) > 50
-    return np.sum(cur_color) / np.sum(prev_color) >= threshold
-
   def GrabGameBoard(self) -> np.array:
-    self.im.save("tmp111.png")
     map = np.zeros(shape=(20, 10), dtype=np.uint8)
     for x in range(10):
       for y in range(20):
         cell_x = self.board_box[0] + self.cell_height / 2 + x * self.cell_height
         cell_y = self.board_box[1] + self.cell_height / 2 + y * self.cell_height
-        color = self.im.getpixel((cell_x, cell_y))
+        color = self._TrimColor(self.im.getpixel((cell_x, cell_y)))
         # print(cell_x, cell_y, color)
         if np.var(color) > 40:
           map[y, x] = self._GetIdFromColor(color, threshold=100)
@@ -170,20 +201,41 @@ class SnapshotBoard(object):
     return 0
 
   def GrabCurrentPiece(self) -> int:
-    pos_x = -self.cell_height + (self.board_box[0] + self.board_box[2]) // 2
-    pos_y = -1.6 * self.cell_height + self.board_box[1]
-    color = self.im.getpixel((pos_x, pos_y))
-    id = self._GetIdFromColor(color, color_base=COLORBASE_CUR)
-    print("cur pos", pos_x, pos_y, color)
+    pos_x = 4.5 * self.cell_height + self.board_box[0]
+    pos_y = -1.5 * self.cell_height + self.board_box[1]
+    cur_piece_color = self.im.getpixel((pos_x, pos_y))
+    cur_piece_color = self._TrimColor(cur_piece_color)
+
+    # Scan from (3.5, -2.5) piece, i.e (3, -2) grid
+    cur_shape = np.zeros(shape=(2, 4))
+    for i in range(4):
+      for j in range(2):
+        x = (3.5 + i) * self.cell_height + self.board_box[0]
+        y = (-2.5 + j) * self.cell_height + self.board_box[1]
+        color = self._TrimColor(self.im.getpixel((x, y)))
+        cur_shape[j, i] = not self._ColorChanged2(color, cur_piece_color)
+
+    id = 0
+    for p in CUR_PIECE_SHAPE_PATTERN:
+      if np.all(np.equal(cur_shape == 1, np.array(p[0]) == 1)):
+        id = p[1]
+        break
     print("cur:", id, PIECE_NAME[id])
     return id
+
+  def _TrimColor(self, color):
+    if len(color) == 4:
+      color = list(color)
+      color.pop()
+      color = tuple(color)
+    return color
 
 
 if __name__ == "__main__":
   time.sleep(0.5)
   snap = SnapshotBoard()
   snap.SnapshotGame()
-  snap.ReadSettings("settings.bmp")
+  snap.ReadSettings("settings.png")
   print(snap.GrabCurrentPiece())
   map = snap.GrabGameBoard()
   print(map)
