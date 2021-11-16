@@ -26,6 +26,7 @@
 #       current_piece
 #
 import copy
+import queue
 import threading
 import time
 from threading import Lock
@@ -35,7 +36,6 @@ import numpy as np
 
 import actions
 import shape
-import queue
 
 # Some global settings
 DEFAULT_LENGTH = 20
@@ -67,8 +67,10 @@ ATTACK_TSD = 4
 ATTACK_TST = 6
 ATTACK_PC = 10
 
+
 class InternalError(Exception):
   """Any internal errors."""
+
 
 class GameState:
   def __init__(self):
@@ -117,6 +119,7 @@ can_swap: {self.can_swap}
 piece_dropped: {self.piece_dropped}
 level: {self.level}
     """
+
 
 class GameClient(GameState):
   def __init__(self, height: int = DEFAULT_LENGTH, width: int = DEFAULT_WIDTH, map_height_padding=MAP_PADDING_SIZE,
@@ -207,13 +210,12 @@ class GameClient(GameState):
     self._InitMap()
 
   def _InitMap(self):
-    side_padding = (1<<self.map_side_padding) - 1
+    side_padding = (1 << self.map_side_padding) - 1
     init_row = (side_padding << (self.map_side_padding + self.width)) | side_padding
     bottom_padding = (1 << (self.width + 2 * self.map_side_padding)) - 1
     self.bit_map = np.concatenate((
       np.array((self.map_height_padding + self.height) * [init_row], dtype=self.dtype),
       np.array(self.map_height_padding * [bottom_padding], dtype=self.dtype)), dtype=self.dtype)
-
 
     self.color_map = np.array([[0 for i in range(self.width)] for x in range(self.height + self.map_height_padding)],
                               dtype=self.dtype)
@@ -322,14 +324,13 @@ class GameClient(GameState):
       "constant", constant_values=(1,))
 
     padding0_len = self.dtype_length - bit_color_map.shape[1]
-    bit_color_map = np.pad(bit_color_map, ((0,0), (0, padding0_len)),
-                     "constant", constant_values=(0,))
+    bit_color_map = np.pad(bit_color_map, ((0, 0), (0, padding0_len)),
+                           "constant", constant_values=(0,))
 
     int_color_map = np.packbits(bit_color_map, bitorder="little").view(self.dtype)
     self.bit_map[0:self.map_height_padding + self.height] = int_color_map
     print(int_color_map)
     print(self.bit_map)
-
 
   def copy(self):
     another = copy.copy(self)
@@ -573,7 +574,7 @@ class GameClient(GameState):
                                 np.delete(self.color_map, elimated_lines, axis=0)))
 
     # Updates the bit_map
-    side_padding = (1<<self.map_side_padding) - 1
+    side_padding = (1 << self.map_side_padding) - 1
     init_row = (side_padding << (self.map_side_padding + self.width)) | side_padding
     self.bit_map = np.concatenate((elimated_cnt * [init_row],
                                    np.delete(self.bit_map, elimated_lines))).astype(self.dtype)
@@ -683,46 +684,54 @@ class GameClient(GameState):
       # state 0
       ([(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)],  # 0>>1
        # 0>>2, 180 rotation
-       [(1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],
+       # [(0,0), (1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],
+       [(0, 0)],
        [(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)]),  # 0>>3
 
       # state 1
       ([(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)],  # 1>>2
        # l>>3, 180 rotation
-       [(0, 1), (0, 2), (-1, 1), (-1, 2), (0, -1), (0, -2), (-1, -1), (-1, -2), (1, 0), (0, 3), (0, -3)],
+       # [(0,0), (0, 1), (0, 2), (-1, 1), (-1, 2), (0, -1), (0, -2), (-1, -1), (-1, -2), (1, 0), (0, 3), (0, -3)],
+       [(0, 0)],
        [(0, 0), (0, 1), (1, 1), (-2, 0), (-2, 1)]),  # 1>>0
 
       # state 2
       ([(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)],  # 2>>3
-       [(-1, 0), (-2, 0), (-1, -1), (-2, -1), (1, 0), (2, 0), (1, -1), (2, -1), (0, 1), (-3, 0), (3, 0)],  # 2>>0,
+       # [(0,0), (-1, 0), (-2, 0), (-1, -1), (-2, -1), (1, 0), (2, 0), (1, -1), (2, -1), (0, 1), (-3, 0), (3, 0)],  # 2>>0,
+       [(0, 0)],
        [(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)]),  # 2>>1
 
       # state 3
       ([(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)],  # 3>>0
        # 3>>1, 180 rotation
-       [(0, 1), (0, 2), (1, 1), (1, 2), (0, -1), (0, -2), (1, -1), (1, -2), (-1, 0), (0, 3), (0, -3)],
+       # [(0,0), (0, 1), (0, 2), (1, 1), (1, 2), (0, -1), (0, -2), (1, -1), (1, -2), (-1, 0), (0, 3), (0, -3)],
+       [(0, 0)],
        [(0, 0), (0, -1), (1, -1), (2, 0), (-2, -1)]),  # 3>>2
     ]
 
     offset_map_i = [
       # state 0
       [[(0, 0), (0, -2), (0, 1), (1, -2), (-2, 1), ],  # 0>>1
-       [(-1, 0), (-2, 0), (1, 0), (2, 0), (0, 1)],  # 0>>2, 180 rotation
+       # [(0,0), (-1, 0), (-2, 0), (1, 0), (2, 0), (0, 1)],  # 0>>2, 180 rotation
+       [(0, 0)],
        [(0, 0), (0, -1), (0, 2), (-2, -1), (1, 2)]],  # 0>>3
 
       # state 1
       [[(0, 0), (0, -1), (0, 2), (-2, -1), (1, 2)],  # 1>>2
-       [(0, 1), (0, 2), (0, -1), (0, -2), (-1, 0)],  # 1>>3, 180 rotation,
+       # [(0,0), (0, 1), (0, 2), (0, -1), (0, -2), (-1, 0)],  # 1>>3, 180 rotation,
+       [(0, 0)],
        [(0, 0), (0, 2), (0, -1), (-1, 2), (2, -1)]],  # 1>>0
 
       # state 2
       [[(0, 0), (0, 2), (0, -1), (-1, 2), (2, -1)],  # 2>>3
-       [(1, 0), (2, 0), (-1, 0), (-2, 0), (0, -1)],  # 2>>0, 180 rotation
+       # [(0, 0), (1, 0), (2, 0), (-1, 0), (-2, 0), (0, -1)],  # 2>>0, 180 rotation
+       [(0, 0)],
        [(0, 0), (0, 1), (0, -2), (2, 1), (-1, -2)]],  # 2>>1
 
       # state 3
       [[(0, 0), (0, 1), (0, -2), (2, 1), (-1, -2)],  # 3>>0
-       [(0, 1), (0, 2), (0, -1), (0, -2), (1, 0)],  # 3>>1, 180 rotation
+       # [(0, 0), (0, 1), (0, 2), (0, -1), (0, -2), (1, 0)],  # 3>>1, 180 rotation
+       [(0, 0)],
        [(0, 0), (0, -2), (0, 1), (1, -2), (2, 1)]],  # 3>>2
     ]
 
@@ -790,7 +799,7 @@ class GameClient(GameState):
     piece.x += offset[0]
     piece.y += offset[1]
 
-    a = self.bit_map[piece.x : piece.x + 4]
+    a = self.bit_map[piece.x: piece.x + 4]
     b = self.width - piece.y
     c = piece.GetBitMap().astype(self.dtype)
     d = c << b
@@ -825,6 +834,7 @@ class GameClient(GameState):
     self._RefillPieces()
     self.current_piece = self.piece_list[0].copy()
     self.piece_list = self.piece_list[1:]
+
 
 def CreateGameFromState(state: GameState) -> GameClient:
   game = GameClient(height=state.height, width=state.width)

@@ -52,11 +52,16 @@ def Run():
       for action in actions:
         print(action)
 
-      if True:
-        time.sleep(0.00)
-        for action in actions:
-          kb.SimulateAction(action)
-          time.sleep(0.010)
+      time.sleep(0.00)
+      for action in actions:
+        kb.SimulateAction(action)
+        time.sleep(0.010)
+    if False:
+      input()
+      print("2..")
+      time.sleep(1)
+      print("1..")
+      time.sleep(1)
 
     time.sleep(0.01)
 

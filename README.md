@@ -18,6 +18,7 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - PIL
 - keyboardr (keyboard simulation for tetr.io bot)
 - mss (faster screenshot lib)
+- parameterized (for testing)
 
 ### For Mac
 ```

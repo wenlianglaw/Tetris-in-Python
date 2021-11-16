@@ -5,6 +5,7 @@ import numpy as np
 import game_client
 import shape
 
+
 class TestShapeRotations(unittest.TestCase):
   def setUp(self):
     self.game = game_client.GameClient(height=5, width=10)
@@ -106,3 +107,13 @@ class TestShapeRotations(unittest.TestCase):
     t1 = shape.T()
     t2 = shape.T()
     self.assertEqual(t1, t2)
+
+  def test_Copy(self):
+    t1 = shape.T()
+    t2 = t1
+    t2.x += 1
+    self.assertEqual(t1, t2)
+
+    t2 = t1.copy()
+    t2.x += 1
+    self.assertNotEqual(t1, t2)

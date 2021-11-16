@@ -1,20 +1,21 @@
 # Ref: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/
 
-import game_client
-from agents import agent
-import shape
-
 from typing import List, Tuple
 
-import actions
 import numpy as np
+
+import actions
+import game_client
+from agents import agent
+
 
 class InternalException(Exception):
   """Raises upon any errors."""
 
+
 class TheNearPerfectAgent(agent.Agent):
   def __init__(self, env: agent.Env,
-               weights: Tuple[float, float,float,float] =
+               weights: Tuple[float, float, float, float] =
                (-0.510066, 0.760666, -0.35663, -0.184483),
                decision_interval: float = 0.1):
     super().__init__(env, decision_interval)
@@ -39,11 +40,14 @@ class TheNearPerfectAgent(agent.Agent):
     for i in range(start_pos, end_pos):
       cnt = 0
       has_block = False
+      thick = 0
       for r in range(game.height + game.map_height_padding):
         if game.color_map[r, i] != 0:
           has_block = True
-        if has_block and game.color_map[r, i] == 0:
-          cnt += 1
+          thick += 1
+        if game.color_map[r, i] == 0:
+          if has_block:
+            cnt += 1 + 0.5 * thick
       rst[i] = cnt
 
   def MakeDecision(self) -> List[actions.Action]:
@@ -58,8 +62,8 @@ class TheNearPerfectAgent(agent.Agent):
       best_move = ()
       best_move_score = -np.inf
 
-      col_holes = ori_game.width * [0]
-      self._UpdateHoles(col_holes, 0, ori_game.width, ori_game)
+      ori_col_holes = ori_game.width * [0]
+      self._UpdateHoles(ori_col_holes, 0, ori_game.width, ori_game)
 
       for move in all_possible_solutions:
         game = ori_game.copy()
@@ -71,6 +75,7 @@ class TheNearPerfectAgent(agent.Agent):
         game.PutPiece(move[0])
 
         # holes
+        col_holes = ori_col_holes.copy()
         self._UpdateHoles(col_holes, move[0].y, move[0].y + 4, game)
         holes = np.sum(col_holes)
 
