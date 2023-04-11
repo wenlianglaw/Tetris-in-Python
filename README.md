@@ -18,9 +18,10 @@ Implemented the Tetirs with Python, and some basic AI agents for personal learni
 - keyboard (keyboard simulation for tetr.io bot)
 - mss (faster screenshot lib)
 - parameterized (for testing)
+- scipy
 
 ```bash
-pip3 install numpy pyopengl pyopengl-accelerate readerwriterlock PIL keyboard mss parameterized 
+python3 -m pip install numpy pyopengl pyopengl-accelerate readerwriterlock PIL keyboard mss parameterized scipy
 ```
 
 ## If you counter OpenGL issue
