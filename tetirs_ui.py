@@ -282,6 +282,7 @@ class TetrisUI:
         self.input_buffer.append(actions.Action(dir=actions.HARD_DROP))
         self._hard_drop_active = False
     if key == settings.RESTART:
+      self.input_buffer.clear()
       self._RestartGame()
 
   def _KeyboardUpFunc(self, key, x, y):
