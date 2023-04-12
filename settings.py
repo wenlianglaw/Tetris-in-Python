@@ -1,8 +1,10 @@
 from OpenGL.GLUT import *
 
 # Sensitivity
+# Delay before the ARR occurs
 DAS = 20  # ms
-ARR = 90  # ms
+# Auto Repeat Rate: How fast it repeats.
+ARR = 30  # ms
 
 # Control keys
 SWAP = GLUT_KEY_UP
