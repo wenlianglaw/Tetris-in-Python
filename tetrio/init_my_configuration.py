@@ -44,16 +44,22 @@ def GetScreen() -> PIL.Image:
   def Onclick(event):
     data = (event.xdata, event.ydata)
     print(data, Onclick.n)
-    if Onclick.n < 2:
-      print("Click the left top and bot right corner for game board.")
-      green_box.append(data)
-    elif Onclick.n < 4:
-      print("Click the left top and bot right corner for held box.")
+    if Onclick.n == 0:
+      print("Click the bot right corner of the game board.")
       red_box.append(data)
-    elif Onclick.n < 5:
-      print("Click the left top corner for next pieces.")
+    elif Onclick.n == 1:
+      print("Click the left top corner of the hold box.")
+      red_box.append(data)
+    elif Onclick.n == 2:
+      print("Click the bot right corner of the hold box.")
+      green_box.append(data)
+    elif Onclick.n == 3:
+      print("Click the left top corner of the next pieces.")
+      green_box.append(data)
+    elif Onclick.n == 4:
+      print("Click the bot right corner of next pieces.")
       blue_box.append(data)
-    elif Onclick.n < 6:
+    elif Onclick.n == 5:
       print("Click the bot right corner for next pieces.")
       blue_box.append(data)
       DrawRectangles()
@@ -82,4 +88,6 @@ if __name__ == "__main__":
     time.sleep(1)
     print("1...")
     time.sleep(1)
+
+  print("Click the left top corner of the game board.")
   GetScreen()

@@ -37,16 +37,17 @@ def Run():
       print("Didn't find any gameboard.  Will retry shortly after.")
       continue
 
+    if cur_piece_id == 0:
+      continue
+
+    print("Board:", board)
     board = np.vstack(
       (np.zeros((game.map_height_padding, game.width),
                 dtype=np.uint8), board)
     )
-    if cur_piece_id == 0:
-      continue
 
     game.SpawnPiece(shape.GetShapeFromId(cur_piece_id))
     game.SetWholeMap(board)
-    game.TextDraw()
     if True:
       actions = bot.MakeDecision()
       for action in actions:
@@ -55,7 +56,7 @@ def Run():
       time.sleep(0.00)
       for action in actions:
         kb.SimulateAction(action)
-        time.sleep(0.010)
+        time.sleep(0.100)
     if False:
       input()
       print("2..")
@@ -63,7 +64,7 @@ def Run():
       print("1..")
       time.sleep(1)
 
-    time.sleep(0.01)
+    time.sleep(.31)
 
 if __name__ == "__main__":
   time.sleep(1.5)

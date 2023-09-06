@@ -7,53 +7,27 @@ from PIL import Image
 from PIL import ImageFilter
 from mss import mss
 
+# This color seems different between MacOS and Windows?
 COLORBASE_BOARD = [
-  (185, 90, 90),  # Z
-  (154, 186, 72),  # S
-  (174, 97, 172),  # T
-  (192, 126, 77),  # L
-  (100, 97, 184),  # J
-  (102, 175, 135),  # I
-  (196, 178, 86),  # O
+  (182, 224, 64),  # Z, 7
+  (145, 174, 58),  # S, 5
+  (191, 83, 190),  # T, 6
+  (216, 122, 52),  # L, 3
+  (81, 71, 202),  # J,  2
+  (121, 220, 160),  # I, 1
+  (225, 191, 59),  # O, 4
 ]
+
+COLOR_IDS = [7, 5, 6, 3, 2, 1, 4]
 
 PIECE_NAME = "_IJLOSTZ"
 
-CUR_PIECE_SHAPE_PATTERN = [
-  ([
-     [0, 0, 0, 0],
-     [1, 1, 1, 1],
-   ], 1),
-  ([
-     [1, 0, 0, 0],
-     [1, 1, 1, 0],
-   ], 2),
-  ([
-     [0, 0, 1, 0],
-     [1, 1, 1, 0],
-   ], 3),
-  (np.array([
-    [0, 1, 1, 0],
-    [0, 1, 1, 0],
-  ]), 4),
-  ([
-     [0, 1, 1, 0],
-     [1, 1, 0, 0],
-   ], 5),
-  ([
-     [0, 1, 0, 0],
-     [1, 1, 1, 0],
-   ], 6),
-  (
-    [
-      [1, 1, 0, 0],
-      [0, 1, 1, 0],
-    ], 7),
-]
 
+def IsBackgroundColor(color: tuple) -> float:
+  return np.sum(color) < 100
 
 class SnapshotBoard(object):
-  def __init__(self, window_box=(0, 0, 1300, 1300)):
+  def __init__(self, window_box=(0, 0, 1700, 1700)):
     self.tetr_window_box = window_box
     self.cell_height = 0
 
@@ -84,6 +58,7 @@ class SnapshotBoard(object):
 
   def SnapshotGame(self):
     self.im = self._CaptureScreenshot()
+    # self.im.save("im_debug.png")
     # self.im = self.im.crop(self.tetr_window_box)
 
   def ReadSettings(self, filename: Text):
@@ -97,9 +72,9 @@ class SnapshotBoard(object):
     g = np_im[:, :, 1]
     b = np_im[:, :, 2]
 
-    r = (r == 255) & (g == 0)
-    g = (r == 0) & (g == 255)
-    b = (r == 0) & (b == 255)
+    r = (r >= 240) & (g <= 10)
+    g = (r <= 10) & (g >= 240)
+    b = (r <= 10) & (b >= 240)
 
     board_box = np.nonzero(r)
     board_box_top = board_box[0][0]
@@ -116,6 +91,7 @@ class SnapshotBoard(object):
 
   def _GetCellSpec(self, im_board: Image):
     im_board_edge = im_board.filter(PIL.ImageFilter.FIND_EDGES)
+    # im_board_edge.save("im_board_edge.png")
     # Scan from top to detect the border of each cell
     height = im_board_edge.height
     width = im_board_edge.width
@@ -147,7 +123,7 @@ class SnapshotBoard(object):
       cell_heights = self._RejectOutliers(ori_cell_heights, m)
     print(cell_heights)
 
-    self.cell_height = np.bincount(cell_heights).argmax()
+    self.cell_height = np.average(cell_heights)
 
   def Init(self, settings_file_name: Text = "settings.bmp"):
     self.ReadSettings(settings_file_name)
@@ -167,13 +143,12 @@ class SnapshotBoard(object):
 
   def _ColorChanged2(self, prev_color: Tuple[int, int, int],
                      cur_color: Tuple[int, int, int],
-                     threshold: float = 500):
+                     threshold: float = 500) -> bool:
     """Another experience function to detect color change."""
     var = np.var(np.subtract(prev_color, cur_color))
     return var >= threshold
 
   def _GetIdFromColor(self, color: Tuple[int, int, int], threshold=20, color_base=COLORBASE_BOARD):
-    colors_id = [7, 5, 6, 3, 2, 1, 4]
     color_var = []
     for c in color_base:
       color_var.append(np.var(np.subtract(color, c)))
@@ -182,7 +157,7 @@ class SnapshotBoard(object):
 
     if color_var_bg < color_var[min]:
       return 0
-    return colors_id[min]
+    return COLOR_IDS[min]
 
   def GrabGameBoard(self) -> np.array:
     map = np.zeros(shape=(20, 10), dtype=np.uint8)
@@ -201,25 +176,27 @@ class SnapshotBoard(object):
     return 0
 
   def GrabCurrentPiece(self) -> int:
-    pos_x = 4.5 * self.cell_height + self.board_box[0]
-    pos_y = -1.5 * self.cell_height + self.board_box[1]
-    cur_piece_color = self.im.getpixel((pos_x, pos_y))
-    cur_piece_color = self._TrimColor(cur_piece_color)
-
-    # Scan from (3.5, -2.5) piece, i.e (3, -2) grid
+    # Scan for current piece
+    colors = []
     cur_shape = np.zeros(shape=(2, 4))
     for i in range(4):
       for j in range(2):
         x = (3.5 + i) * self.cell_height + self.board_box[0]
-        y = (-2.5 + j) * self.cell_height + self.board_box[1]
+        y = (-1.5 + j) * self.cell_height + self.board_box[1]
         color = self._TrimColor(self.im.getpixel((x, y)))
-        cur_shape[j, i] = not self._ColorChanged2(color, cur_piece_color)
+        if not IsBackgroundColor(color):
+          colors.append(color)
+    if not colors:
+      print("cur: NULL")
+      return 0
 
-    id = 0
-    for p in CUR_PIECE_SHAPE_PATTERN:
-      if np.all(np.equal(cur_shape == 1, np.array(p[0]) == 1)):
-        id = p[1]
-        break
+    # Color variance compared to the base
+    color_variance = []
+    colors_avg = np.average(colors, axis=0)
+    for color_base in COLORBASE_BOARD:
+      color_variance.append(np.var(np.array(colors_avg) - np.array(color_base)))
+
+    id = COLOR_IDS[np.argmin(color_variance)]
     print("cur:", id, PIECE_NAME[id])
     return id
 
@@ -232,10 +209,10 @@ class SnapshotBoard(object):
 
 
 if __name__ == "__main__":
-  time.sleep(0.5)
+  time.sleep(1.5)
   snap = SnapshotBoard()
   snap.SnapshotGame()
   snap.ReadSettings("settings.png")
-  print(snap.GrabCurrentPiece())
+  print("current piece:", snap.GrabCurrentPiece())
   map = snap.GrabGameBoard()
   print(map)

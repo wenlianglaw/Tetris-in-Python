@@ -7,6 +7,7 @@ import pstats
 from agents import agent
 from benchmark import utils
 
+NUM_GAMES = 50
 
 def RunFunc(func, games):
   avg_sol = 0
@@ -17,7 +18,7 @@ def RunFunc(func, games):
   print(func, " ", avg_sol)
 
 def RunBenchmark():
-  games = utils.GenRandomGames(50, 25, 6)
+  games = utils.GenRandomGames(NUM_GAMES, 25, 6)
   profile_quick_version = cProfile.Profile()
   profile_quick_version.runcall(RunFunc,
                                 func=agent.GetPossiblePositionsQuickVersion,
@@ -41,9 +42,9 @@ def RunBenchmark():
   stats_quick_dfs.sort_stats("tottime").print_stats(0.2)
   stats_normal.sort_stats("tottime").print_stats(0.2)
 
-  print("quick tt", stats_quick.total_tt)
-  print("quick dfs tt", stats_quick.total_tt)
-  print("normal tt", stats_normal.total_tt)
+  print("quick tt %f ms" % (stats_quick.total_tt * 1000 / NUM_GAMES))
+  print("quick dfs tt %f ms", (stats_quick.total_tt * 1000 / NUM_GAMES))
+  print("normal tt %f ms", (stats_normal.total_tt * 1000 / NUM_GAMES))
   print("quick %f%%" % (100 * stats_quick.total_tt / stats_normal.total_tt))
   print("quick dfs %f%%" % (100 * stats_quick_dfs.total_tt / stats_normal.total_tt))
 
