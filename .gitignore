@@ -2,7 +2,9 @@
 *.xml
 *.xml__.*
 *.iml
-.idea.*
+.idea*
 .*___
 *.py___jb_tmp___
 *.xml___jb_tmp___
+**/*.png
+**/*.bmp
