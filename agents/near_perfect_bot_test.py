@@ -1,8 +1,14 @@
+import sys
+from os.path import abspath, join, dirname
+
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.append(abspath(join(dirname(__file__), "..")))
+
 import unittest
 
 import numpy as np
 
-import agent
+from agents import agent
 import game_client
 import near_perfect_bot
 import shape
