@@ -77,7 +77,7 @@ class GameState:
     self.height = 0
     self.width = 0
     self.color_map = np.array([])
-    self.current_piece = None
+    self.current_piece: shape.Shape|None = None
     self.held_piece = None
     self.score = 0
     self.piece_list = []
@@ -684,8 +684,8 @@ class GameClient(GameState):
       # state 0
       ([(0, 0), (0, -1), (-1, -1), (2, 0), (2, -1)],  # 0>>1
        # 0>>2, 180 rotation
-       # [(0,0), (1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],
-       [(0, 0)],
+       # [(0, 0)],
+       [(0,0), (1, 0), (2, 0), (1, 1), (2, 1), (-1, 0), (-2, 0), (-1, 1), (-2, 1), (0, -1), (3, 0), (-3, 0)],
        [(0, 0), (0, 1), (-1, 1), (2, 0), (2, 1)]),  # 0>>3
 
       # state 1
