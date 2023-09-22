@@ -108,7 +108,7 @@ Reference:
 
 - Spins: https://tetris.fandom.com/wiki/SRS
 
-# Tetr.io bot
+# Tetr.io bot  [No supporting anymore]
 
 The bot is made for the [Tetr.io](https://tetr.io/), **Zen mode only**. It uses mss python lib to grab your screenshot,
 analyze the Tetr.io window and extract the current game state. Then it interacts with the TetrIO game client using
